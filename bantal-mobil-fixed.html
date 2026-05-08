@@ -22,35 +22,41 @@ src="https://www.facebook.com/tr?id=1725350328644769&ev=PageView&noscript=1"/></
 <!-- End Meta Pixel Code -->
 
 <script>
-function trackAddToCart(el, productName, price) {
-  const url = el.href;
-  const eventId = 'addtocart_' + Date.now();
-  let redirected = false;
-  function redirectNow() {
+var WA_NUMBER = '6281337608406';
+var PAKET = {
+  'leher':   { nama: 'Paket Bantal Leher',   harga: 148000, label: '148.000' },
+  'pinggang':{ nama: 'Paket Bantal Pinggang', harga: 188000, label: '188.000' },
+  'lengkap': { nama: 'Paket Bantal Lengkap',  harga: 254000, label: '254.000' }
+};
+
+function pesanWA(key) {
+  var p = PAKET[key];
+  if (!p) return;
+
+  var msg = 'Halo, saya mau pesan *' + p.nama + '* 🚗\n\n'
+    + '💰 *Harga:* Rp ' + p.label + '\n'
+    + '🚚 *Ongkir:* GRATIS (Jawa)\n\n'
+    + 'Mohon konfirmasi ketersediaan & info pengiriman. Terima kasih!';
+
+  var waUrl = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
+  var eventId = 'purchase_' + Date.now();
+  var redirected = false;
+
+  function goWA() {
     if (redirected) return;
     redirected = true;
-    window.open(url, '_blank');
+    window.open(waUrl, '_blank');
   }
-  fbq(
-    'track',
-    'AddToCart',
-    {
-      content_name: productName,
-      content_type: 'product',
-      value: price,
-      currency: 'IDR'
-    },
-    {
-      eventID: eventId,
-      event_callback: function () {
-        redirectNow();
-      }
-    }
-  );
-  setTimeout(function () {
-    redirectNow();
-  }, 800);
-  return false;
+
+  fbq('track', 'Purchase', {
+    content_name: p.nama,
+    content_type: 'product',
+    contents: [{ id: key, quantity: 1 }],
+    value: p.harga,
+    currency: 'IDR'
+  }, { eventID: eventId, event_callback: goWA });
+
+  setTimeout(goWA, 800);
 }
 </script>
 
@@ -368,55 +374,6 @@ function trackAddToCart(el, productName, price) {
 
   .size-wrap img { width: 100%; display: block; }
 
-  .sticky-bar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--black);
-    border-top: 1px solid rgba(201,150,58,0.3);
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    z-index: 999;
-  }
-
-  .sticky-left { color: var(--white); }
-  .sticky-left strong { display: block; font-size: 15px; font-weight: 600; }
-  .sticky-left span { font-size: 12px; color: var(--gold); }
-
-  .btn-sticky {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--wa-green);
-    color: var(--white);
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    padding: 14px 28px;
-    border-radius: 10px;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-  }
-
-  .btn-sticky:hover { filter: brightness(1.1); transform: scale(1.02); }
-  .btn-sticky svg { width: 20px; height: 20px; fill: #fff; }
-
-  /* Form fields */
-  .form-field { margin-bottom:28px; }
-  .form-label { display:block; font-weight:500; font-size:13px; color:#999; margin-bottom:8px; letter-spacing:0.3px; }
-  .form-input {
-    width:100%; padding:14px 0; border:none; border-bottom:1.5px solid #e0dbd2;
-    font-size:16px; font-family:inherit; background:transparent; color:#111; outline:none;
-    transition: border-color 0.2s;
-  }
-  .form-input:focus { border-color: var(--gold); }
-  .form-input::placeholder { color:#ccc; }
-
   /* Radio cards */
   .radio-card {
     display:flex; align-items:flex-start; gap:12px; padding:14px 16px;
@@ -435,42 +392,6 @@ function trackAddToCart(el, productName, price) {
   .rc-badge.gold { background:var(--gold); color:#fff; }
   .rc-badge.dark { background:#222; color:var(--gold); }
 
-  /* Alamat box */
-  .alamat-box {
-    border:1.5px solid #ededed; border-radius:14px; background:#fff;
-    overflow:hidden; transition: border-color 0.2s;
-  }
-  .alamat-box:focus-within { border-color: var(--gold); }
-  .alamat-tags { display:flex; flex-wrap:wrap; gap:6px; padding:14px 16px 0; }
-  .alamat-tags:empty { display:none; }
-  .alamat-step-label { font-size:11px; color:#bbb; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.8px; font-weight:500; }
-  .alamat-select {
-    width:100%; padding:8px 0 14px; border:none; background:transparent;
-    font-size:15px; font-family:inherit; color:#111; outline:none; cursor:pointer;
-  }
-  #alamat-step { padding:14px 16px; }
-  .alamat-divider { height:1px; background:#f0ede8; margin:0 0 12px; }
-  .alamat-inline-input {
-    width:100%; padding:10px 16px; border:none; background:transparent;
-    font-size:15px; font-family:inherit; color:#111; outline:none;
-    border-bottom:1px solid #f0ede8;
-  }
-  .alamat-inline-input::placeholder, .alamat-inline-textarea::placeholder { color:#ccc; }
-  .alamat-inline-textarea {
-    width:100%; padding:10px 16px 14px; border:none; background:transparent;
-    font-size:15px; font-family:inherit; color:#111; outline:none; resize:none;
-  }
-
-  /* Submit button */
-  .btn-submit {
-    width:100%; padding:18px; background:var(--wa-green); color:#fff;
-    font-size:17px; font-weight:700; font-family:inherit; border:none;
-    border-radius:16px; cursor:pointer; display:flex; align-items:center;
-    justify-content:center; gap:10px; transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(37,211,102,0.25);
-  }
-  .btn-submit:hover { filter:brightness(1.05); transform:translateY(-1px); box-shadow: 0 6px 24px rgba(37,211,102,0.3); }
-
   .footer {
     background: var(--black);
     color: rgba(255,255,255,0.4);
@@ -488,171 +409,9 @@ function trackAddToCart(el, productName, price) {
     .section, .products-inner { padding: 60px 20px; }
     .gallery-grid { grid-template-columns: repeat(2, 1fr); }
     .gallery-grid img:first-child { grid-column: span 2; }
-    .sticky-left strong { font-size: 13px; }
   }
 </style>
 
-<script>
-function selectPaket(name) {
-  var radios = document.querySelectorAll('#paket-options input[name="paket"]');
-  radios.forEach(function(r) { if (r.value === name) r.checked = true; });
-  document.getElementById('form-order').scrollIntoView({ behavior: 'smooth' });
-}
-
-var WILAYAH_API = 'https://www.emsifa.com/api-wilayah-indonesia/api';
-
-var alamatSteps = [
-  { key: 'prov', label: 'Provinsi', endpoint: '/provinces.json', placeholder: 'Pilih Provinsi...', stepLabel: 'Langkah 1 — Pilih Provinsi' },
-  { key: 'kota', label: 'Kota/Kab', endpoint: '/regencies/{id}.json', placeholder: 'Pilih Kota / Kabupaten...', stepLabel: 'Langkah 2 — Pilih Kota / Kabupaten' },
-  { key: 'kec', label: 'Kecamatan', endpoint: '/districts/{id}.json', placeholder: 'Pilih Kecamatan...', stepLabel: 'Langkah 3 — Pilih Kecamatan' },
-  { key: 'kel', label: 'Kelurahan', endpoint: '/villages/{id}.json', placeholder: 'Pilih Kelurahan / Desa...', stepLabel: 'Langkah 4 — Pilih Kelurahan / Desa' }
-];
-var alamatCurrent = 0;
-var alamatValues = {};
-
-function alamatRenderTags() {
-  var box = document.getElementById('alamat-tags');
-  box.innerHTML = '';
-  var keys = ['prov','kota','kec','kel'];
-  var hasAny = false;
-  keys.forEach(function(k, i) {
-    if (!alamatValues[k]) return;
-    hasAny = true;
-    var tag = document.createElement('span');
-    tag.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e0d6c2;border-radius:20px;padding:5px 12px;font-size:13px;color:#111;cursor:pointer;transition:background 0.15s;';
-    tag.innerHTML = '<span style="color:#999;font-size:11px;">' + alamatSteps[i].label + ':</span> ' + alamatValues[k].name + ' <span style="color:#bbb;font-size:14px;margin-left:2px;">&times;</span>';
-    tag.onclick = function() { alamatResetFrom(i); };
-    box.appendChild(tag);
-  });
-  box.style.display = hasAny ? 'flex' : 'none';
-}
-
-function alamatResetFrom(stepIndex) {
-  var keys = ['prov','kota','kec','kel'];
-  for (var i = stepIndex; i < keys.length; i++) delete alamatValues[keys[i]];
-  document.getElementById('h-prov').value = '';
-  document.getElementById('h-kota').value = '';
-  document.getElementById('h-kec').value = '';
-  document.getElementById('h-kel').value = '';
-  Object.keys(alamatValues).forEach(function(k) {
-    var el = document.getElementById('h-' + k);
-    if (el) el.value = alamatValues[k].name;
-  });
-  alamatCurrent = stepIndex;
-  document.getElementById('alamat-detail-wrap').style.display = 'none';
-  document.getElementById('alamat-step').style.display = 'block';
-  alamatRenderTags();
-  alamatLoadStep();
-}
-
-function alamatLoadStep() {
-  var step = alamatSteps[alamatCurrent];
-  var sel = document.getElementById('sel-active');
-  var label = document.getElementById('alamat-step-label');
-  label.textContent = step.stepLabel;
-  sel.innerHTML = '<option value="">' + step.placeholder + '</option>';
-  sel.innerHTML += '<option value="" disabled>Memuat...</option>';
-
-  var url = WILAYAH_API + step.endpoint;
-  if (alamatCurrent > 0) {
-    var prevKey = alamatSteps[alamatCurrent - 1].key;
-    url = url.replace('{id}', alamatValues[prevKey].id);
-  }
-
-  fetch(url)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      sel.innerHTML = '<option value="">' + step.placeholder + '</option>';
-      data.forEach(function(item) {
-        var opt = document.createElement('option');
-        opt.value = item.id;
-        opt.textContent = item.name;
-        sel.appendChild(opt);
-      });
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  var sel = document.getElementById('sel-active');
-  alamatLoadStep();
-
-  sel.addEventListener('change', function() {
-    if (!this.value) return;
-    var step = alamatSteps[alamatCurrent];
-    alamatValues[step.key] = { id: this.value, name: this.options[this.selectedIndex].text };
-    document.getElementById('h-' + step.key).value = this.options[this.selectedIndex].text;
-
-    alamatCurrent++;
-    alamatRenderTags();
-
-    if (alamatCurrent < alamatSteps.length) {
-      alamatLoadStep();
-    } else {
-      document.getElementById('alamat-step').style.display = 'none';
-      document.getElementById('alamat-detail-wrap').style.display = 'block';
-      var detailInput = document.querySelector('textarea[name="detail_alamat"]');
-      if (detailInput) detailInput.focus();
-    }
-  });
-});
-
-function submitOrder(e) {
-  e.preventDefault();
-  var f = e.target;
-  var checked = f.querySelector('input[name="paket"]:checked');
-  var paket = checked ? checked.value : '';
-  var nama = f.nama.value.trim();
-  var hp = f.hp.value.trim();
-  var catatan = f.catatan.value.trim();
-  var detail = f.detail_alamat ? f.detail_alamat.value.trim() : '';
-  var kodepos = f.kodepos ? f.kodepos.value.trim() : '';
-  var prov = document.getElementById('h-prov').value;
-  var kota = document.getElementById('h-kota').value;
-  var kec = document.getElementById('h-kec').value;
-  var kel = document.getElementById('h-kel').value;
-
-  if (!paket || !nama || !hp || !prov || !kota || !kec || !kel || !detail) {
-    alert('Mohon lengkapi semua data yang wajib diisi.');
-    return;
-  }
-
-  var alamat = detail + ', ' + kel + ', ' + kec + ', ' + kota + ', ' + prov;
-  if (kodepos) alamat += ' ' + kodepos;
-
-  var harga = { 'Paket Bantal Leher': '148.000', 'Paket Bantal Pinggang': '188.000', 'Paket Bantal Lengkap': '254.000' };
-
-  var msg = 'Halo, saya mau pesan Bantal Mobil 🚗\n\n'
-    + '📦 *Paket:* ' + paket + '\n'
-    + '💰 *Harga:* Rp ' + (harga[paket] || '-') + '\n'
-    + '🚚 *Ongkir:* GRATIS (Jawa)\n\n'
-    + '👤 *Nama:* ' + nama + '\n'
-    + '📱 *No HP:* ' + hp + '\n'
-    + '📍 *Alamat:* ' + alamat;
-  if (catatan) msg += '\n📝 *Catatan:* ' + catatan;
-
-  var waUrl = 'https://wa.me/6281337608406?text=' + encodeURIComponent(msg);
-  var priceNum = parseInt((harga[paket] || '0').replace(/\./g, ''));
-  var eventId = 'checkout_' + Date.now();
-  var redirected = false;
-
-  function goToWA() {
-    if (redirected) return;
-    redirected = true;
-    window.open(waUrl, '_blank');
-  }
-
-  fbq('track', 'Purchase', {
-    content_name: paket,
-    content_type: 'product',
-    contents: [{ id: paket, quantity: 1 }],
-    num_items: 1,
-    value: priceNum,
-    currency: 'IDR'
-  }, { eventID: eventId, event_callback: goToWA });
-
-  setTimeout(goToWA, 800);
-}
-</script>
 
 </head>
 <body>
@@ -667,7 +426,7 @@ function submitOrder(e) {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       GRATIS ONGKIR seluruh Jawa — hari ini saja!
     </div>
-    <a class="cta-hero" href="#form-order">
+    <a class="cta-hero" href="#paket" onclick="void(0)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       Pesan Sekarang — Gratis Ongkir
     </a>
@@ -717,9 +476,9 @@ function submitOrder(e) {
             <li>Tali adjustable fit semua kursi</li>
           </ul>
           <div class="pkg-price"><span class="curr">Rp</span><span class="amount">148.000</span></div>
-          <a class="btn-pkg" href="#form-order" onclick="selectPaket('Paket Bantal Leher'); return false;">
+          <a class="btn-pkg" href="javascript:void(0)" onclick="pesanWA('leher')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            Pesan Paket Ini
+            Pesan via WhatsApp
           </a>
         </div>
       </div>
@@ -737,9 +496,9 @@ function submitOrder(e) {
             <li>Material breathable, tidak panas</li>
           </ul>
           <div class="pkg-price"><span class="curr">Rp</span><span class="amount">188.000</span></div>
-          <a class="btn-pkg" href="#form-order" onclick="selectPaket('Paket Bantal Pinggang'); return false;">
+          <a class="btn-pkg" href="javascript:void(0)" onclick="pesanWA('pinggang')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            Pesan Paket Ini
+            Pesan via WhatsApp
           </a>
         </div>
       </div>
@@ -757,9 +516,9 @@ function submitOrder(e) {
             <li>Hemat vs beli satuan</li>
           </ul>
           <div class="pkg-price"><span class="curr">Rp</span><span class="amount">254.000</span></div>
-          <a class="btn-pkg" href="#form-order" onclick="selectPaket('Paket Bantal Lengkap'); return false;">
+          <a class="btn-pkg" href="javascript:void(0)" onclick="pesanWA('lengkap')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            Pesan Paket Ini
+            Pesan via WhatsApp
           </a>
         </div>
       </div>
@@ -829,111 +588,15 @@ function submitOrder(e) {
 </section>
 
 
-<!-- FORM ORDER -->
-<div id="form-order" style="background: var(--cream); padding: 80px 40px;">
-  <div style="max-width: 600px; margin: 0 auto;">
-    <div class="sec-label" style="text-align:center;">Pesan Sekarang</div>
-    <h2 class="sec-title" style="text-align:center; margin-bottom: 8px;">Isi Form Order di Bawah</h2>
-    <p style="text-align:center; color:#666; font-size:15px; margin-bottom: 20px;">Pilih paket & isi data diri kamu, lalu langsung terhubung ke WhatsApp kami</p>
-    <div style="background:#fff; border:1px solid #e8d5a3; border-radius:12px; padding:16px 24px; margin-bottom:32px; display:flex; align-items:center; gap:12px;">
-      <div style="font-size:28px;">📋</div>
-      <div>
-        <div style="font-size:14px; font-weight:600; color:#111; margin-bottom:4px;">Setelah submit, kamu langsung diarahkan ke WhatsApp</div>
-        <div style="font-size:13px; color:#777;">Tim kami akan segera konfirmasi pesanan & pengirimanmu.</div>
-      </div>
-    </div>
-
-    <form onsubmit="submitOrder(event)" style="background:#fff; border-radius:24px; padding:40px 32px; box-shadow:0 4px 30px rgba(0,0,0,0.06);">
-      <div style="font-weight:600; font-size:15px; color:#111; margin-bottom:12px;">Pilihan Paket <span style="color:var(--red);">*</span></div>
-      <div id="paket-options" style="display:flex; flex-direction:column; gap:8px; margin-bottom:32px;">
-        <label class="radio-card">
-          <input type="radio" name="paket" value="Paket Bantal Leher" required>
-          <div class="rc-body">
-            <div class="rc-top">
-              <span class="rc-name">Paket Bantal Leher</span>
-              <span class="rc-price">Rp 148.000</span>
-            </div>
-            <div class="rc-desc">1x Bantal Leher Premium</div>
-          </div>
-        </label>
-        <label class="radio-card">
-          <input type="radio" name="paket" value="Paket Bantal Pinggang">
-          <div class="rc-body">
-            <div class="rc-top">
-              <span class="rc-name">Paket Bantal Pinggang <span class="rc-badge gold">Terlaris</span></span>
-              <span class="rc-price">Rp 188.000</span>
-            </div>
-            <div class="rc-desc">1x Penopang Pinggang Ergonomis</div>
-          </div>
-        </label>
-        <label class="radio-card">
-          <input type="radio" name="paket" value="Paket Bantal Lengkap">
-          <div class="rc-body">
-            <div class="rc-top">
-              <span class="rc-name">Paket Lengkap <span class="rc-badge dark">Hemat</span></span>
-              <span class="rc-price">Rp 254.000</span>
-            </div>
-            <div class="rc-desc">1x Bantal Leher + 1x Penopang Pinggang</div>
-          </div>
-        </label>
-      </div>
-
-      <div class="form-field">
-        <label class="form-label">Nama Lengkap <span style="color:var(--red);">*</span></label>
-        <input type="text" name="nama" required placeholder="Budi Santoso" class="form-input">
-      </div>
-
-      <div class="form-field">
-        <label class="form-label">Nomor WhatsApp <span style="color:var(--red);">*</span></label>
-        <input type="tel" name="hp" required placeholder="081234567890" class="form-input">
-      </div>
-
-      <div class="form-field">
-        <label class="form-label">Alamat Pengiriman <span style="color:var(--red);">*</span></label>
-        <div id="alamat-box" class="alamat-box">
-          <div id="alamat-tags" class="alamat-tags"></div>
-          <div id="alamat-step">
-            <div id="alamat-step-label" class="alamat-step-label">Langkah 1 — Pilih Provinsi</div>
-            <select id="sel-active" class="alamat-select">
-              <option value="">Pilih Provinsi...</option>
-            </select>
-          </div>
-          <div id="alamat-detail-wrap" style="display:none;">
-            <div class="alamat-divider"></div>
-            <input type="text" name="kodepos" placeholder="Kode Pos" class="alamat-inline-input">
-            <textarea name="detail_alamat" rows="2" placeholder="Jalan, RT/RW, No. Rumah, Patokan..." class="alamat-inline-textarea"></textarea>
-          </div>
-        </div>
-      </div>
-      <input type="hidden" id="h-prov" name="provinsi">
-      <input type="hidden" id="h-kota" name="kota">
-      <input type="hidden" id="h-kec" name="kecamatan">
-      <input type="hidden" id="h-kel" name="kelurahan">
-
-      <div class="form-field">
-        <label class="form-label">Catatan <span style="color:#bbb; font-weight:400;">(opsional)</span></label>
-        <input type="text" name="catatan" placeholder="Warna, jumlah, dll." class="form-input">
-      </div>
-
-      <button type="submit" class="btn-submit">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.37 0-4.567-.696-6.42-1.888l-.447-.29-2.982 1-1.003-2.982-.29-.447A9.946 9.946 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
-        Pesan via WhatsApp
-      </button>
-
-      <p style="text-align:center; color:#bbb; font-size:12px; margin-top:16px;">Data kamu aman & hanya digunakan untuk proses pengiriman.</p>
-    </form>
-  </div>
-</div>
-
 <!-- CTA AKHIR -->
 <div style="background: linear-gradient(135deg, #0D0D0D 60%, #1A1106 100%); padding: 80px 40px; text-align: center;">
   <div class="sec-label" style="justify-content:center; display:flex;">Jangan Tunggu Lagi</div>
   <h2 style="font-family:'Playfair Display',serif; font-size:clamp(32px,5vw,56px); color:#fff; margin-bottom:16px; line-height:1.2;">Pesan Sekarang,<br><span style="color:var(--gold);">Gratis Ongkir Seluruh Jawa</span></h2>
   <p style="color:rgba(255,255,255,0.55); margin-bottom:40px; font-size:16px;">Stok terbatas. Promo gratis ongkir bisa berakhir kapan saja.</p>
-  <a class="cta-hero" href="#form-order" style="margin:0 auto; background:var(--wa-green); color:#fff;">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    Isi Form Pemesanan Sekarang
-  </a>
+  <button class="cta-hero" onclick="pesanWA('lengkap')" style="margin:0 auto; background:var(--wa-green); color:#fff; border:none; cursor:pointer;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.37 0-4.567-.696-6.42-1.888l-.447-.29-2.982 1-1.003-2.982-.29-.447A9.946 9.946 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+    Pesan via WhatsApp Sekarang
+  </button>
 </div>
 
 
