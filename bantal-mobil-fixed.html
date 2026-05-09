@@ -28,13 +28,24 @@ var PAKET = {
   'pinggang':{ nama: 'Paket Bantal Pinggang', harga: 188000, label: '188.000' },
   'lengkap': { nama: 'Paket Bantal Lengkap',  harga: 254000, label: '254.000' }
 };
+var selectedColor = '';
+
+function pilihWarna(warna, el) {
+  selectedColor = warna;
+  document.querySelectorAll('.color-swatch').forEach(function(s){ s.classList.remove('active'); });
+  el.classList.add('active');
+  var info = document.getElementById('selected-color-label');
+  if (info) info.textContent = 'Warna dipilih: ' + warna;
+}
 
 function pesanWA(key) {
   var p = PAKET[key];
   if (!p) return;
 
+  var warnaLine = selectedColor ? 'Warna: ' + selectedColor + '\n' : '';
   var msg = 'Halo, saya mau pesan ' + p.nama + '\n\n'
     + 'Harga: Rp ' + p.label + '\n'
+    + warnaLine
     + 'Ongkir: GRATIS ke seluruh Indonesia\n\n'
     + 'Mohon konfirmasi ketersediaan dan info pengiriman. Terima kasih.';
 
@@ -374,6 +385,75 @@ function pesanWA(key) {
 
   .size-wrap img { width: 100%; display: block; }
 
+  /* Color picker */
+  .color-section {
+    margin: 32px 0 40px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .color-jok-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .color-jok-info svg { flex-shrink: 0; stroke: var(--gold); }
+  .color-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+  }
+  .color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .color-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 72px;
+  }
+  .color-swatch img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+  }
+  .color-swatch span {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .color-swatch:hover { border-color: rgba(201,150,58,0.5); }
+  .color-swatch.active {
+    border-color: var(--gold);
+    background: rgba(201,150,58,0.1);
+  }
+  .color-swatch.active span { color: var(--gold); font-weight: 600; }
+  .selected-color-label {
+    margin-top: 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    font-style: italic;
+  }
+
   /* Radio cards */
   .radio-card {
     display:flex; align-items:flex-start; gap:12px; padding:14px 16px;
@@ -462,6 +542,47 @@ function pesanWA(key) {
     <div class="sec-label">Pilih Paketmu</div>
     <h2 class="sec-title">3 Pilihan Paket Bantal Mobil</h2>
     <p style="color:rgba(255,255,255,0.55); font-size:15px; margin-top:8px;">Semua paket sudah termasuk GRATIS ONGKIR ke seluruh Indonesia</p>
+
+    <!-- Info jok + pilih warna -->
+    <div class="color-section">
+      <div class="color-jok-info">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Cocok untuk semua jenis jok mobil
+      </div>
+      <div class="color-title">Pilih Warna</div>
+      <div class="color-swatches">
+        <button class="color-swatch" onclick="pilihWarna('Red', this)" title="Red">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314515/WhatsApp_Image_2026-05-09_at_15.10.04_1_gp6f2e.jpg" alt="Red">
+          <span>Red</span>
+        </button>
+        <button class="color-swatch" onclick="pilihWarna('Beige', this)" title="Beige">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314515/WhatsApp_Image_2026-05-09_at_15.10.04_3_tppvbe.jpg" alt="Beige">
+          <span>Beige</span>
+        </button>
+        <button class="color-swatch" onclick="pilihWarna('Grey', this)" title="Grey">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314515/WhatsApp_Image_2026-05-09_at_15.10.03_1_itoxet.jpg" alt="Grey">
+          <span>Grey</span>
+        </button>
+        <button class="color-swatch" onclick="pilihWarna('Blue', this)" title="Blue">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314516/WhatsApp_Image_2026-05-09_at_15.10.04_4_owim6e.jpg" alt="Blue">
+          <span>Blue</span>
+        </button>
+        <button class="color-swatch" onclick="pilihWarna('Pink', this)" title="Pink">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314516/WhatsApp_Image_2026-05-09_at_15.10.04_2_r2jk9s.jpg" alt="Pink">
+          <span>Pink</span>
+        </button>
+        <button class="color-swatch" onclick="pilihWarna('Black', this)" title="Black">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314515/WhatsApp_Image_2026-05-09_at_15.10.03_eolreo.jpg" alt="Black">
+          <span>Black</span>
+        </button>
+        <button class="color-swatch" onclick="pilihWarna('Brown', this)" title="Brown">
+          <img src="https://res.cloudinary.com/eljidastore/image/upload/v1778314515/WhatsApp_Image_2026-05-09_at_15.10.04_bwxx7w.jpg" alt="Brown">
+          <span>Brown</span>
+        </button>
+      </div>
+      <div id="selected-color-label" class="selected-color-label">Pilih warna favoritmu di atas (opsional)</div>
+    </div>
+
     <div class="pkg-grid">
 
       <!-- Paket Leher -->
