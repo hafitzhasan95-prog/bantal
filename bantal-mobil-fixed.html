@@ -33,10 +33,10 @@ function pesanWA(key) {
   var p = PAKET[key];
   if (!p) return;
 
-  var msg = 'Halo, saya mau pesan *' + p.nama + '* 🚗\n\n'
-    + '💰 *Harga:* Rp ' + p.label + '\n'
-    + '🚚 *Ongkir:* GRATIS (Jawa)\n\n'
-    + 'Mohon konfirmasi ketersediaan & info pengiriman. Terima kasih!';
+  var msg = 'Halo, saya mau pesan ' + p.nama + '\n\n'
+    + 'Harga: Rp ' + p.label + '\n'
+    + 'Ongkir: GRATIS ke seluruh Indonesia\n\n'
+    + 'Mohon konfirmasi ketersediaan dan info pengiriman. Terima kasih.';
 
   var waUrl = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
   var eventId = 'purchase_' + Date.now();
@@ -419,12 +419,12 @@ function pesanWA(key) {
 <!-- HERO -->
 <section class="hero">
   <div class="hero-text">
-    <div class="badge-promo"><span></span> Gratis Ongkir Seluruh Jawa</div>
+    <div class="badge-promo"><span></span> Gratis Ongkir Seluruh Indonesia</div>
     <h1>Perjalanan Jauh Tanpa <em>Pegal & Nyeri</em> Lagi</h1>
     <p class="hero-sub">Bantal penopang leher & pinggang premium — dirancang khusus untuk kursi mobil agar setiap perjalanan terasa nyaman seperti duduk di sofa mewah.</p>
     <div class="free-ongkir">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      GRATIS ONGKIR seluruh Jawa — hari ini saja!
+      GRATIS ONGKIR seluruh Indonesia — hari ini saja!
     </div>
     <a class="cta-hero" href="#paket">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -461,7 +461,7 @@ function pesanWA(key) {
   <div class="products-inner">
     <div class="sec-label">Pilih Paketmu</div>
     <h2 class="sec-title">3 Pilihan Paket Bantal Mobil</h2>
-    <p style="color:rgba(255,255,255,0.55); font-size:15px; margin-top:8px;">Semua paket sudah termasuk GRATIS ONGKIR ke seluruh Jawa</p>
+    <p style="color:rgba(255,255,255,0.55); font-size:15px; margin-top:8px;">Semua paket sudah termasuk GRATIS ONGKIR ke seluruh Indonesia</p>
     <div class="pkg-grid">
 
       <!-- Paket Leher -->
@@ -591,7 +591,7 @@ function pesanWA(key) {
 <!-- CTA AKHIR -->
 <div style="background: linear-gradient(135deg, #0D0D0D 60%, #1A1106 100%); padding: 80px 40px; text-align: center;">
   <div class="sec-label" style="justify-content:center; display:flex;">Jangan Tunggu Lagi</div>
-  <h2 style="font-family:'Playfair Display',serif; font-size:clamp(32px,5vw,56px); color:#fff; margin-bottom:16px; line-height:1.2;">Pesan Sekarang,<br><span style="color:var(--gold);">Gratis Ongkir Seluruh Jawa</span></h2>
+  <h2 style="font-family:'Playfair Display',serif; font-size:clamp(32px,5vw,56px); color:#fff; margin-bottom:16px; line-height:1.2;">Pesan Sekarang,<br><span style="color:var(--gold);">Gratis Ongkir Seluruh Indonesia</span></h2>
   <p style="color:rgba(255,255,255,0.55); margin-bottom:40px; font-size:16px;">Stok terbatas. Promo gratis ongkir bisa berakhir kapan saja.</p>
   <button class="cta-hero" onclick="pesanWA('lengkap')" style="margin:0 auto; background:var(--wa-green); color:#fff; border:none; cursor:pointer;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.37 0-4.567-.696-6.42-1.888l-.447-.29-2.982 1-1.003-2.982-.29-.447A9.946 9.946 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
