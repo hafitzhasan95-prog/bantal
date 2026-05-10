@@ -1448,12 +1448,7 @@ document.querySelectorAll('.cta-link').forEach(btn => {
   btn.rel = 'noopener';
   btn.addEventListener('click', () => {
     if (typeof fbq !== 'undefined') {
-      fbq('track', 'Purchase', {
-        content_name: 'Paket Bantal Lengkap',
-        content_type: 'product',
-        value: 254000,
-        currency: 'IDR'
-      });
+      fbq('track', 'InitiateCheckout');
     }
   });
 });
