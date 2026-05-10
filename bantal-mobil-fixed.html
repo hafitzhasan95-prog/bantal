@@ -518,9 +518,14 @@ img { max-width: 100%; display: block; }
   gap: 16px;
   animation: scroll-testi 40s linear infinite;
   width: max-content;
+  will-change: transform;
+  -webkit-overflow-scrolling: touch;
 }
 
-.testi-track:hover { animation-play-state: paused; }
+/* Pause on hover hanya di device yang support hover (bukan touchscreen) */
+@media (hover: hover) {
+  .testi-track:hover { animation-play-state: paused; }
+}
 
 @keyframes scroll-testi {
   0% { transform: translateX(0); }
