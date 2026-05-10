@@ -516,20 +516,8 @@ img { max-width: 100%; display: block; }
 .testi-track {
   display: flex;
   gap: 16px;
-  animation: scroll-testi 40s linear infinite;
   width: max-content;
   will-change: transform;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Pause on hover hanya di device yang support hover (bukan touchscreen) */
-@media (hover: hover) {
-  .testi-track:hover { animation-play-state: paused; }
-}
-
-@keyframes scroll-testi {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(calc(-50% - 8px)); }
 }
 
 .testi-photo-card {
@@ -1623,6 +1611,48 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     }
   });
 });
+
+// ============================================
+// TESTIMONIAL MARQUEE (JS — works on all mobile)
+// ============================================
+(function() {
+  var track = document.querySelector('.testi-track');
+  if (!track) return;
+
+  // Clone semua card sekali lagi untuk seamless loop
+  var cards = Array.from(track.children);
+  cards.forEach(function(card) {
+    track.appendChild(card.cloneNode(true));
+  });
+
+  var pos = 0;
+  var speed = 0.5; // px per frame — naik = lebih cepat
+  var halfWidth = 0;
+  var raf;
+  var paused = false;
+
+  function getHalfWidth() {
+    halfWidth = track.scrollWidth / 2;
+  }
+
+  function step() {
+    if (!paused) {
+      pos += speed;
+      if (pos >= halfWidth) pos = 0;
+      track.style.transform = 'translateX(-' + pos + 'px)';
+    }
+    raf = requestAnimationFrame(step);
+  }
+
+  // Pause saat di-touch (hanya desktop hover yang boleh pause)
+  // Di mobile: tidak ada pause sama sekali
+  window.addEventListener('load', function() {
+    getHalfWidth();
+    raf = requestAnimationFrame(step);
+  });
+
+  window.addEventListener('resize', getHalfWidth);
+})();
 </script>
 
 </body>
