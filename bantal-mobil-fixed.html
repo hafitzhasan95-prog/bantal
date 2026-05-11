@@ -817,45 +817,6 @@ footer {
 
 footer strong { color: var(--white); }
 
-/* === FLOATING WHATSAPP === */
-.float-wa {
-  position: fixed;
-  bottom: 20px; right: 20px;
-  z-index: 9000;
-  background: #25D366;
-  color: var(--white);
-  width: 60px; height: 60px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.5);
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 30px;
-  transition: all 0.3s ease;
-  animation: bounce 2s infinite;
-}
-
-.float-wa:hover { transform: scale(1.1); }
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.float-wa::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 2px solid #25D366;
-  opacity: 0;
-  animation: ripple 2s infinite;
-}
-
-@keyframes ripple {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.4); }
-}
 
 /* === FOMO NOTIFICATION === */
 .fomo-notification {
@@ -959,7 +920,6 @@ footer strong { color: var(--white); }
 @media (max-width: 480px) {
   .fomo-notification { left: 12px; right: 12px; max-width: none; }
   .live-counter { top: 70px; right: 10px; font-size: 11px; padding: 6px 10px; }
-  .float-wa { width: 56px; height: 56px; font-size: 26px; bottom: 16px; right: 16px; }
   .testi-photo-card { flex: 0 0 240px; }
 }
 </style>
@@ -1409,10 +1369,6 @@ footer strong { color: var(--white); }
   © 2026 <strong>Zivi Store</strong> · Bantal Leher & Pinggang Mobil Premium · Produk asli, bukan KW · Garansi kepuasan pelanggan
 </footer>
 
-<!-- ============================================ -->
-<!-- FLOATING WHATSAPP -->
-<!-- ============================================ -->
-<a href="https://wa.me/6281337608406?text=Halo%20Admin%2C%20saya%20tertarik%20dengan%20Paket%20Bantal%20Lengkap%20%2B%203%20Bonus.%20Mohon%20info%20lengkapnya%2C%20terima%20kasih!" class="float-wa" target="_blank" rel="noopener" aria-label="Chat WhatsApp">💬</a>
 
 <!-- ============================================ -->
 <!-- FOMO NOTIFICATION -->
