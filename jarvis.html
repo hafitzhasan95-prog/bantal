@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jarvis Voice Assistant</title>
+  <meta name="description" content="Website voice assistant: bicara lewat mic, AI jawab pakai suara." />
+  <style>
+    :root{
+      --bg:#080b12;--panel:rgba(255,255,255,.08);--panel2:rgba(255,255,255,.12);
+      --text:#f7f8ff;--muted:#a9b0c6;--line:rgba(255,255,255,.14);
+      --primary:#7c5cff;--primary2:#00d4ff;--danger:#ff426d;--ok:#31e6a0;
+      --shadow:0 24px 80px rgba(0,0,0,.45);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;color:var(--text);
+      background:
+        radial-gradient(circle at 20% 10%,rgba(124,92,255,.35),transparent 35%),
+        radial-gradient(circle at 80% 20%,rgba(0,212,255,.22),transparent 30%),
+        radial-gradient(circle at 50% 95%,rgba(49,230,160,.18),transparent 35%),
+        var(--bg);
+      overflow-x:hidden;
+    }
+    .wrap{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:34px 0 28px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:46px;height:46px;border-radius:16px;
+      background:linear-gradient(135deg,var(--primary),var(--primary2));
+      display:grid;place-items:center;box-shadow:0 12px 40px rgba(124,92,255,.35);
+      font-size:23px;
+    }
+    .brand h1{font-size:18px;margin:0;letter-spacing:-.02em}
+    .brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+    .status{
+      border:1px solid var(--line);background:var(--panel);padding:10px 13px;
+      border-radius:999px;color:var(--muted);font-size:13px;display:flex;align-items:center;
+      gap:8px;backdrop-filter:blur(16px);
+    }
+    .dot{width:8px;height:8px;border-radius:99px;background:var(--ok);box-shadow:0 0 20px var(--ok)}
+    .dot.listen{background:var(--danger);box-shadow:0 0 22px var(--danger);animation:pulse 1s infinite}
+    @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.55);opacity:.6}}
+    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:stretch}
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.06));
+      border-radius:28px;box-shadow:var(--shadow);backdrop-filter:blur(20px);
+    }
+    .intro{padding:34px}
+    .eyebrow{
+      display:inline-flex;gap:8px;align-items:center;color:#dfe8ff;
+      background:rgba(124,92,255,.18);border:1px solid rgba(124,92,255,.3);
+      padding:8px 12px;border-radius:999px;font-size:13px;margin-bottom:20px;
+    }
+    .intro h2{
+      font-size:clamp(36px,6vw,72px);line-height:.94;letter-spacing:-.07em;
+      margin:0 0 18px;
+    }
+    .intro h2 span{
+      color:transparent;background:linear-gradient(90deg,#fff,#9eeaff,#b8a8ff);
+      -webkit-background-clip:text;background-clip:text;
+    }
+    .intro p{color:var(--muted);font-size:17px;line-height:1.7;max-width:620px;margin:0 0 24px}
+    .quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+    .chip{
+      border:1px solid var(--line);background:rgba(255,255,255,.07);color:#e9ecff;
+      padding:10px 13px;border-radius:999px;cursor:pointer;transition:.2s ease;font-size:14px;
+    }
+    .chip:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+    .assistant{padding:26px;display:grid;grid-template-rows:auto 1fr auto;min-height:640px}
+    .orbBox{display:grid;place-items:center;padding:22px 0 8px}
+    .orb{
+      width:190px;aspect-ratio:1;border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 30%,rgba(255,255,255,.95),transparent 12%),
+        radial-gradient(circle at 30% 35%,#9aefff,transparent 24%),
+        radial-gradient(circle at 62% 65%,#7c5cff,transparent 34%),
+        radial-gradient(circle at 50% 50%,#00d4ff,#3a2b9e 70%);
+      box-shadow:0 0 50px rgba(0,212,255,.38),inset 0 0 45px rgba(255,255,255,.18);
+      position:relative;animation:float 4s ease-in-out infinite;
+    }
+    .orb:before,.orb:after{
+      content:"";position:absolute;inset:-18px;border-radius:inherit;
+      border:1px solid rgba(255,255,255,.18);animation:ripple 2.8s infinite;
+    }
+    .orb:after{animation-delay:1.2s}
+    .orb.speaking{animation:float 1.2s ease-in-out infinite,glow .8s infinite alternate}
+    .orb.listening{animation:shake .9s ease-in-out infinite,glow .55s infinite alternate}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes ripple{from{transform:scale(.92);opacity:.8}to{transform:scale(1.22);opacity:0}}
+    @keyframes glow{from{box-shadow:0 0 45px rgba(0,212,255,.38)}to{box-shadow:0 0 85px rgba(124,92,255,.65)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+    .chat{
+      flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;
+      padding:4px 2px;max-height:280px;
+    }
+    .msg{
+      padding:13px 16px;border-radius:18px;font-size:15px;line-height:1.6;max-width:88%;
+    }
+    .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff}
+    .msg.ai{align-self:flex-start;background:rgba(255,255,255,.08)}
+    .controls{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:18px}
+    textarea{
+      resize:none;min-height:52px;max-height:130px;border:1px solid var(--line);
+      background:rgba(0,0,0,.25);color:var(--text);border-radius:18px;
+      padding:15px 14px;outline:none;font:inherit;
+    }
+    .btns{display:flex;gap:8px}
+    button{
+      border:0;color:#fff;font-weight:750;cursor:pointer;border-radius:18px;
+      padding:0 18px;min-width:54px;transition:.2s ease;background:var(--panel2);
+    }
+    button:hover{transform:translateY(-2px);filter:brightness(1.08)}
+    button:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .send{background:linear-gradient(135deg,var(--primary),var(--primary2))}
+    .mic{background:rgba(255,255,255,.12);font-size:20px}
+    .mic.active{background:linear-gradient(135deg,#ff426d,#ff9a3d)}
+    .settings{
+      margin-top:22px;padding:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+    }
+    label{color:var(--muted);font-size:13px;display:grid;gap:7px}
+    input,select{
+      border:1px solid var(--line);background:rgba(0,0,0,.24);color:var(--text);
+      border-radius:14px;padding:12px;outline:none;
+    }
+    option{background:#111827;color:#fff}
+    .note{margin-top:14px;color:var(--muted);font-size:13px;line-height:1.6}
+    @media(max-width:900px){
+      header{align-items:flex-start;flex-direction:column}
+      .hero{grid-template-columns:1fr}
+      .assistant{min-height:auto}
+      .settings{grid-template-columns:1fr}
+      .controls{grid-template-columns:1fr}
+      .btns button{flex:1;min-height:52px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">🤖</div>
+        <div>
+          <h1>Jarvis Voice Assistant</h1>
+          <p>Bicara atau ketik — AI jawab pakai suara</p>
+        </div>
+      </div>
+      <div class="status">
+        <div id="dot" class="dot"></div>
+        <span id="statusText">Ready</span>
+      </div>
+    </header>
+
+    <main class="hero">
+      <section class="card intro">
+        <div class="eyebrow">⚡ Powered by Web Speech API</div>
+        <h2><span>Voice AI</span><br/>untuk bisnis kamu</h2>
+        <p>Tanya apapun lewat mic atau keyboard. Jarvis akan menjawab dengan suara dan teks. Siap diupgrade ke LLM + ElevenLabs.</p>
+        <div class="quick">
+          <button class="chip" data-prompt="Buatkan ide produk winning untuk Meta Ads Indonesia.">Ide produk</button>
+          <button class="chip" data-prompt="Bantu saya bikin landing page yang menjual.">Landing page</button>
+          <button class="chip" data-prompt="Jelaskan rencana upgrade website ini ke ElevenLabs dan Whisper.">Rencana upgrade</button>
+        </div>
+        <p class="note">
+          Catatan: mic browser paling bagus di Chrome/Edge. Untuk produksi nanti kita sambungkan ke STT/TTS API dan LLM backend.
+        </p>
+      </section>
+
+      <section class="card assistant">
+        <div class="orbBox"><div id="orb" class="orb"></div></div>
+        <div id="chat" class="chat"></div>
+        <div>
+          <div class="controls">
+            <textarea id="input" placeholder="Ketik atau tekan mic lalu bicara..."></textarea>
+            <div class="btns">
+              <button id="micBtn" class="mic" title="Bicara">🎙️</button>
+              <button id="sendBtn" class="send">Kirim</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="card settings">
+      <label>
+        Nama AI
+        <input id="aiName" value="Jarvis" />
+      </label>
+      <label>
+        Bahasa suara
+        <select id="lang">
+          <option value="id-ID" selected>Indonesia</option>
+          <option value="en-US">English US</option>
+        </select>
+      </label>
+      <label>
+        Mode jawaban
+        <select id="mode">
+          <option value="local" selected>Demo lokal</option>
+          <option value="api" disabled>API backend nanti</option>
+        </select>
+      </label>
+    </section>
+  </div>
+
+  <script>
+    const chat       = document.getElementById('chat');
+    const input      = document.getElementById('input');
+    const sendBtn    = document.getElementById('sendBtn');
+    const micBtn     = document.getElementById('micBtn');
+    const statusText = document.getElementById('statusText');
+    const dot        = document.getElementById('dot');
+    const orb        = document.getElementById('orb');
+    const aiName     = document.getElementById('aiName');
+    const lang       = document.getElementById('lang');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let listening   = false;
+
+    function setStatus(text, state = 'ready') {
+      statusText.textContent = text;
+      dot.className  = 'dot'  + (state === 'listen' ? ' listen' : '');
+      orb.className  = 'orb'  + (state === 'listen' ? ' listening' : state === 'speak' ? ' speaking' : '');
+    }
+
+    function addMsg(role, text) {
+      const div = document.createElement('div');
+      div.className   = 'msg ' + role;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function localBrain(text) {
+      const name = aiName.value.trim() || 'Jarvis';
+      const q    = text.toLowerCase();
+      if (q.includes('landing page')) {
+        return `Siap. ${name} bisa bantu susun landing page: headline, benefit, social proof, offer, FAQ, dan CTA WhatsApp. Untuk versi berikutnya, kita sambungkan website ini ke backend agar bisa generate HTML otomatis.`;
+      }
+      if (q.includes('produk') || q.includes('meta ads') || q.includes('winning')) {
+        return `Untuk Meta Ads Indonesia, kita cari produk fisik dengan problem jelas, visual demo kuat, margin sehat, dan bisa COD. Contoh kategori: alat rumah tangga praktis, otomotif kecil, beauty tool, dan gadget problem-solver.`;
+      }
+      if (q.includes('elevenlabs') || q.includes('whisper') || q.includes('upgrade')) {
+        return `Rencana upgrade: (1) Whisper API untuk STT yang akurat, (2) ElevenLabs untuk TTS suara natural, (3) GPT-4 atau Claude sebagai otak AI. Estimasi biaya produksi ringan, ideal untuk demo klien dan layanan jasa.`;
+      }
+      return `${name} siap membantu. Silakan tanya soal bisnis, iklan Meta, landing page, atau strategi digital kamu.`;
+    }
+
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang  = lang.value;
+      utt.onend = () => setStatus('Ready', 'ready');
+      setStatus('Speaking...', 'speak');
+      window.speechSynthesis.speak(utt);
+    }
+
+    function sendText(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      addMsg('user', trimmed);
+      input.value = '';
+      setStatus('Thinking...', 'speak');
+      setTimeout(() => {
+        const reply = localBrain(trimmed);
+        addMsg('ai', reply);
+        speak(reply);
+      }, 600);
+    }
+
+    function setupRecognition() {
+      if (!SpeechRecognition) {
+        micBtn.disabled = true;
+        micBtn.title    = 'Speech Recognition tidak didukung browser ini';
+        setStatus('Mic unsupported. Pakai Chrome/Edge.', 'ready');
+        return;
+      }
+      recognition                 = new SpeechRecognition();
+      recognition.lang            = lang.value;
+      recognition.interimResults  = true;
+      recognition.continuous      = false;
+
+      recognition.onstart = () => {
+        listening = true;
+        micBtn.classList.add('active');
+        setStatus('Listening...', 'listen');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        input.value = transcript;
+        if (event.results[event.results.length - 1].isFinal) sendText(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        setStatus('Mic error: ' + event.error, 'ready');
+      };
+
+      recognition.onend = () => {
+        listening = false;
+        micBtn.classList.remove('active');
+        if (!window.speechSynthesis.speaking) setStatus('Ready', 'ready');
+      };
+    }
+
+    micBtn.addEventListener('click', () => {
+      if (!recognition) return;
+      window.speechSynthesis?.cancel();
+      recognition.lang = lang.value;
+      if (listening) recognition.stop();
+      else recognition.start();
+    });
+
+    sendBtn.addEventListener('click', () => sendText(input.value));
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendText(input.value);
+      }
+    });
+
+    document.querySelectorAll('[data-prompt]').forEach(btn => {
+      btn.addEventListener('click', () => sendText(btn.dataset.prompt));
+    });
+
+    lang.addEventListener('change', setupRecognition);
+
+    setupRecognition();
+
+    addMsg('ai', 'Halo! Website voice assistant siap dites. Klik mic, bicara, lalu saya jawab pakai suara browser.');
+  </script>
+</body>
+</html>
