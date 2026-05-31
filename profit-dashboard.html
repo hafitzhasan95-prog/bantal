@@ -7,46 +7,50 @@
 <style>
   #login-gate {
     position: fixed; inset: 0; z-index: 9999;
-    background: #0f0f0f;
+    background: #F8FAFC;
     display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
   }
   .login-box {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 14px;
-    padding: 40px 36px;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 44px 40px;
     width: 100%;
-    max-width: 360px;
+    max-width: 380px;
     text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
   }
-  .login-logo { font-size: 2.4rem; margin-bottom: 8px; }
-  .login-title { color: #e8e8e8; font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
-  .login-sub { color: #666; font-size: 0.8rem; margin-bottom: 28px; }
+  .login-logo {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg,#6366F1,#818CF8);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 16px;
+  }
+  .login-title { color: #1E293B; font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+  .login-sub { color: #94A3B8; font-size: 0.82rem; margin-bottom: 28px; }
   .login-box input[type="password"] {
     width: 100%; padding: 12px 16px;
-    background: #0f0f0f; border: 1px solid #2a2a2a;
-    border-radius: 8px; color: #e8e8e8;
+    background: #F8FAFC; border: 1.5px solid #E2E8F0;
+    border-radius: 10px; color: #1E293B;
     font-size: 1rem; font-family: inherit;
-    outline: none; margin-bottom: 14px;
+    outline: none; margin-bottom: 12px;
     transition: border-color .15s;
     text-align: center; letter-spacing: 0.15em;
+    box-sizing: border-box;
   }
-  .login-box input[type="password"]:focus { border-color: #1D9E75; }
+  .login-box input[type="password"]:focus { border-color: #6366F1; }
   .login-btn {
     width: 100%; padding: 12px;
-    background: #1D9E75; border: none; border-radius: 8px;
+    background: #6366F1; border: none; border-radius: 10px;
     color: #fff; font-size: 0.95rem; font-weight: 700;
     cursor: pointer; transition: background .15s;
   }
-  .login-btn:hover { background: #18836200; background: #159965; }
-  .login-err {
-    color: #e05252; font-size: 0.8rem;
-    margin-top: 12px; min-height: 18px;
-  }
+  .login-btn:hover { background: #4F46E5; }
+  .login-err { color: #EF4444; font-size: 0.8rem; margin-top: 12px; min-height: 18px; }
 </style>
 <script>
-  // Cek apakah sudah pernah login (tersimpan di sessionStorage)
   (function() {
     if (sessionStorage.getItem('pmAuth') === 'ok') {
       document.addEventListener('DOMContentLoaded', function() {
@@ -61,260 +65,321 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0f0f0f;
-    --surface: #1a1a1a;
-    --surface2: #222222;
-    --border: #2a2a2a;
-    --text: #e8e8e8;
-    --text-muted: #888;
-    --green: #1D9E75;
-    --green-dim: #155c45;
-    --red: #e05252;
-    --red-dim: #5c2020;
-    --yellow: #e0aa3e;
-    --blue: #4a9eff;
-    --radius: 10px;
-    --radius-sm: 6px;
+    --bg: #F1F5F9;
+    --surface: #FFFFFF;
+    --surface2: #F8FAFC;
+    --border: #E2E8F0;
+    --border-light: #F1F5F9;
+    --text: #1E293B;
+    --text-muted: #64748B;
+    --text-xs: #94A3B8;
+    --indigo: #6366F1;
+    --indigo-dim: #EEF2FF;
+    --indigo-dark: #4F46E5;
+    --green: #10B981;
+    --green-dim: #ECFDF5;
+    --red: #EF4444;
+    --red-dim: #FEF2F2;
+    --yellow: #F59E0B;
+    --yellow-dim: #FFFBEB;
+    --blue: #3B82F6;
+    --blue-dim: #EFF6FF;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
   }
 
   html { font-size: 14px; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     line-height: 1.5;
     min-height: 100vh;
   }
 
-  /* ─── LAYOUT ─── */
+  /* ─── HEADER ─── */
   .app-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: #0f0f0fcc;
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 16px;
+    height: 60px;
   }
-  .app-header h1 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--green);
-    flex: 1;
-    white-space: nowrap;
+  .header-brand {
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
   }
-  .header-meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+  .header-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg,#6366F1,#818CF8);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .header-brand-name {
+    font-size: 0.95rem; font-weight: 700; color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .header-nav {
+    display: flex; align-items: center; gap: 2px;
+    margin-left: 16px;
+  }
+  .nav-tab {
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem; font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer; border: none; background: none;
+    transition: all 0.15s;
+  }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--indigo-dim); color: var(--indigo); font-weight: 600; }
+
+  .header-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
   }
   .last-updated {
-    font-size: 0.78rem;
-    color: var(--text-muted);
+    font-size: 0.75rem; color: var(--text-xs);
+    white-space: nowrap;
   }
 
-  .main { padding: 16px 20px 40px; max-width: 1600px; margin: 0 auto; }
+  /* ─── MAIN LAYOUT ─── */
+  .main { padding: 20px 24px 48px; max-width: 1600px; margin: 0 auto; }
 
-  /* ─── ALERT BANNER ─── */
+  /* ─── ALERT ─── */
   #roas-alert {
     display: none;
     background: var(--red-dim);
-    border: 1px solid var(--red);
+    border: 1px solid #FECACA;
     border-radius: var(--radius-sm);
     padding: 10px 16px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     font-weight: 600;
     color: var(--red);
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     animation: pulse-border 2s infinite;
   }
   @keyframes pulse-border {
-    0%, 100% { border-color: var(--red); }
-    50% { border-color: #ff000080; }
+    0%, 100% { border-color: #FECACA; }
+    50% { border-color: var(--red); }
   }
 
-  /* ─── SUMMARY CARDS ─── */
-  .cards-grid {
+  /* ─── PAGE TITLE ROW ─── */
+  .page-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .page-title { font-size: 1.3rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+  .page-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* ─── HERO CARDS ─── */
+  .hero-cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (min-width: 640px) { .hero-cards { grid-template-columns: repeat(4, 1fr); } }
+
+  .hero-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s, transform 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .hero-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .hero-card-accent {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--indigo), #818CF8);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .hero-card-accent.green { background: linear-gradient(90deg, var(--green), #34D399); }
+  .hero-card-accent.red { background: linear-gradient(90deg, var(--red), #F87171); }
+  .hero-card-accent.yellow { background: linear-gradient(90deg, var(--yellow), #FCD34D); }
+
+  .hero-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .hero-card-label {
+    font-size: 0.72rem; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .hero-card-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .hero-card-icon.indigo { background: var(--indigo-dim); }
+  .hero-card-icon.green { background: var(--green-dim); }
+  .hero-card-icon.red { background: var(--red-dim); }
+  .hero-card-icon.yellow { background: var(--yellow-dim); }
+
+  .hero-card-value {
+    font-size: 1.35rem; font-weight: 700;
+    color: var(--text); letter-spacing: -0.03em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hero-card.positive .hero-card-value { color: var(--green); }
+  .hero-card.negative .hero-card-value { color: var(--red); }
+
+  /* ─── MINI CARDS ─── */
+  .mini-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
     margin-bottom: 20px;
   }
-  @media (min-width: 640px) { .cards-grid { grid-template-columns: repeat(4, 1fr); } }
-  @media (min-width: 1024px) { .cards-grid { grid-template-columns: repeat(8, 1fr); } }
+  @media (max-width: 639px) { .mini-cards { grid-template-columns: repeat(2, 1fr); } }
 
-  .card {
+  .mini-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    box-shadow: var(--shadow);
+  }
+  .mini-card-label {
+    font-size: 0.68rem; font-weight: 600;
+    color: var(--text-xs);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .mini-card-value {
+    font-size: 1rem; font-weight: 700;
+    color: var(--text); letter-spacing: -0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ─── TWO-COL LAYOUT ─── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 1024px) {
+    .two-col { grid-template-columns: 1fr 340px; }
+  }
+
+  /* ─── PANEL ─── */
+  .panel {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 16px;
-    transition: border-color 0.2s;
-  }
-  .card:hover { border-color: #3a3a3a; }
-  .card-label {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 6px;
-    white-space: nowrap;
+    box-shadow: var(--shadow);
     overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .card-value {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap;
   }
-  .card.positive .card-value { color: var(--green); }
-  .card.negative .card-value { color: var(--red); }
-  .card.warn .card-value { color: var(--yellow); }
-
-  /* ─── SECTION ─── */
-  .section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 16px;
+  .panel-title {
+    font-size: 0.88rem; font-weight: 700;
+    color: var(--text); letter-spacing: -0.01em;
   }
-  .section-title {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .panel-body { padding: 16px 18px; }
+  .panel-body.no-pad { padding: 0; }
+  .panel + .panel { margin-top: 16px; }
 
   /* ─── STACKED BAR ─── */
-  .stacked-bar-wrap { overflow: hidden; }
   .stacked-bar {
-    display: flex;
-    height: 36px;
+    display: flex; height: 32px;
     border-radius: var(--radius-sm);
-    overflow: hidden;
-    gap: 1px;
+    overflow: hidden; gap: 2px;
   }
   .stacked-seg {
-    position: relative;
-    cursor: default;
-    min-width: 2px;
+    position: relative; cursor: default; min-width: 2px;
     transition: filter 0.15s;
   }
-  .stacked-seg:hover { filter: brightness(1.2); }
+  .stacked-seg:hover { filter: brightness(0.88); }
   .stacked-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 12px;
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px;
   }
   .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; color: var(--text-muted);
   }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   /* tooltip */
   .tip {
     position: fixed;
-    background: #111;
-    border: 1px solid var(--border);
+    background: #1E293B;
     border-radius: var(--radius-sm);
     padding: 6px 10px;
-    font-size: 0.78rem;
-    color: var(--text);
-    pointer-events: none;
-    z-index: 999;
-    white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.1s;
+    font-size: 0.75rem; color: #fff;
+    pointer-events: none; z-index: 999;
+    white-space: nowrap; opacity: 0; transition: opacity 0.1s;
+    box-shadow: var(--shadow-md);
   }
   .tip.visible { opacity: 1; }
 
   /* ─── CAMPAIGN TABLE ─── */
   .table-controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    align-items: center;
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
   }
   .filter-btn {
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--text-muted);
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding: 4px 12px;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
   }
+  .filter-btn:hover { border-color: var(--indigo); color: var(--indigo); }
   .filter-btn.active {
-    background: var(--green-dim);
-    border-color: var(--green);
-    color: var(--green);
+    background: var(--indigo-dim);
+    border-color: var(--indigo); color: var(--indigo); font-weight: 600;
   }
+
   .table-wrap { overflow-x: auto; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.82rem;
-    white-space: nowrap;
-  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; white-space: nowrap; }
+  thead { background: var(--surface2); }
   th {
-    text-align: left;
-    padding: 8px 12px;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    text-align: left; padding: 10px 14px;
+    color: var(--text-muted); font-weight: 600;
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
     border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    user-select: none;
+    cursor: pointer; user-select: none;
   }
   th:hover { color: var(--text); }
   th .sort-arrow { margin-left: 4px; opacity: 0.4; }
-  th.sorted .sort-arrow { opacity: 1; color: var(--green); }
+  th.sorted .sort-arrow { opacity: 1; color: var(--indigo); }
   td {
-    padding: 9px 12px;
-    border-bottom: 1px solid #1f1f1f;
-    vertical-align: middle;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle; color: var(--text);
   }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #1f1f1f; }
+  tr:hover td { background: var(--surface2); }
 
   .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    display: inline-block; padding: 2px 8px;
+    border-radius: 20px; font-size: 0.66rem; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
   }
   .badge-active { background: var(--green-dim); color: var(--green); }
-  .badge-paused { background: #2a2a2a; color: var(--text-muted); }
-  .badge-pending { background: #3a2e10; color: var(--yellow); }
+  .badge-paused { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-pending { background: var(--yellow-dim); color: var(--yellow); }
   .badge-confirmed { background: var(--green-dim); color: var(--green); }
   .badge-cancelled { background: var(--red-dim); color: var(--red); }
 
@@ -323,180 +388,121 @@
   .cpp-yellow { color: var(--yellow); font-weight: 600; }
 
   /* ─── CHARTS ─── */
-  .charts-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
+  canvas { max-height: 240px; }
+
+  /* ─── SIDEBAR STAT LIST ─── */
+  .stat-list { display: flex; flex-direction: column; gap: 0; }
+  .stat-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.82rem;
   }
-  @media (min-width: 900px) {
-    .charts-grid { grid-template-columns: 1fr 1fr; }
-    .chart-full { grid-column: 1 / -1; }
-  }
-  .chart-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-  }
-  .chart-title {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 12px;
-  }
-  canvas { max-height: 260px; }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: var(--text-muted); font-weight: 500; }
+  .stat-val { font-weight: 700; color: var(--text); }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
 
   /* ─── ORDER FEED ─── */
-  .order-feed {
-    max-height: 320px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
+  .order-feed { max-height: 280px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
   .order-item {
     display: grid;
     grid-template-columns: 1fr auto auto auto;
-    gap: 12px;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px solid #1f1f1f;
-    font-size: 0.82rem;
+    gap: 10px; align-items: center;
+    padding: 9px 18px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.8rem;
   }
   .order-item:last-child { border-bottom: none; }
-  .order-id { font-family: monospace; font-size: 0.75rem; color: var(--text-muted); }
-  .order-time { font-size: 0.72rem; color: var(--text-muted); }
-  .order-rev { font-weight: 600; color: var(--green); }
+  .order-item:hover { background: var(--surface2); }
+  .order-id { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.72rem; color: var(--text-muted); }
+  .order-rev { font-weight: 700; color: var(--green); }
 
   /* ─── BUTTONS ─── */
   .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text);
-    transition: all 0.15s;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    transition: all 0.15s; white-space: nowrap;
+    box-shadow: var(--shadow);
   }
-  .btn:hover { border-color: #3a3a3a; background: #2a2a2a; }
-  .btn-primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
-  .btn-primary:hover { background: #1d6e52; }
+  .btn:hover { background: var(--surface2); border-color: #CBD5E1; }
+  .btn-primary { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+  .btn-primary:hover { background: var(--indigo-dark); border-color: var(--indigo-dark); }
   .btn-icon { padding: 7px 10px; }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-  /* ─── SETTINGS PANEL ─── */
+  /* ─── SETTINGS OVERLAY ─── */
   .settings-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: #000000aa;
-    z-index: 200;
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,0.4); z-index: 200;
     backdrop-filter: blur(4px);
   }
   .settings-overlay.open { display: flex; align-items: center; justify-content: center; padding: 20px; }
   .settings-panel {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    width: 100%;
-    max-width: 520px;
-    max-height: 90vh;
-    overflow-y: auto;
+    border-radius: 16px;
+    padding: 28px 24px;
+    width: 100%; max-width: 520px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: var(--shadow-md);
   }
   .settings-panel h2 {
-    font-size: 1rem;
-    margin-bottom: 20px;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    font-size: 1rem; font-weight: 700; margin-bottom: 20px; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between;
   }
   .form-group { margin-bottom: 14px; }
   .form-group label {
-    display: block;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-bottom: 5px;
-    font-weight: 600;
+    display: block; font-size: 0.75rem; color: var(--text-muted);
+    margin-bottom: 5px; font-weight: 600;
   }
   .form-group input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    font-family: inherit;
-    transition: border-color 0.15s;
+    width: 100%; background: var(--surface2);
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); padding: 8px 12px;
+    font-size: 0.85rem; font-family: inherit; transition: border-color 0.15s;
   }
-  .form-group input:focus { outline: none; border-color: var(--green); }
+  .form-group input:focus { outline: none; border-color: var(--indigo); }
   .settings-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
   .form-divider {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 18px 0 12px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 6px;
+    font-size: 0.7rem; color: var(--text-xs);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 18px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px;
   }
 
   /* ─── SPINNER ─── */
   .spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--border);
-    border-top-color: var(--green);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border); border-top-color: var(--indigo);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ─── LOADING / ERROR STATE ─── */
+  /* ─── STATE BOX ─── */
   .state-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    gap: 12px;
-    color: var(--text-muted);
-    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 36px; gap: 10px;
+    color: var(--text-muted); text-align: center; font-size: 0.82rem;
   }
-  .state-box .big-icon { font-size: 2.5rem; }
   .error-badge {
-    display: inline-block;
-    padding: 3px 9px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    background: var(--red-dim);
-    color: var(--red);
-    margin-left: 8px;
-    vertical-align: middle;
+    display: inline-block; padding: 3px 9px; border-radius: 20px;
+    font-size: 0.68rem; font-weight: 700;
+    background: var(--red-dim); color: var(--red);
+    margin-left: 6px; vertical-align: middle;
   }
 
-  /* ─── RESPONSIVE HELPERS ─── */
+  /* ─── RESPONSIVE ─── */
   @media (max-width: 639px) {
     .hide-mobile { display: none !important; }
-    .app-header h1 { font-size: 0.95rem; }
-    .card-value { font-size: 1rem; }
-  }
-  @media (max-width: 899px) {
-    .chart-full { grid-column: auto; }
+    .app-header { padding: 0 16px; }
+    .main { padding: 14px 16px 40px; }
+    .header-nav { display: none; }
   }
 
-  /* ─── COUNT-UP ─── */
   .count-up { transition: opacity 0.3s; }
   .count-up.loading { opacity: 0.3; }
 </style>
@@ -544,7 +550,7 @@
     </div>
     <div class="form-group">
       <label>Base URL</label>
-      <input type="text" id="cfg-scalev-url" placeholder="https://api.scalev.id/v1">
+      <input type="text" id="cfg-scalev-url" placeholder="https://api.scalev.com">
     </div>
 
     <div class="form-divider">Cost Variables</div>
@@ -572,18 +578,26 @@
 
 <!-- App Header -->
 <header class="app-header">
-  <h1>📊 Profit Monitor</h1>
-  <div class="header-meta">
+  <div class="header-brand">
+    <div class="header-brand-icon">📊</div>
+    <span class="header-brand-name">Profit Monitor</span>
+  </div>
+  <nav class="header-nav">
+    <button class="nav-tab active">Dashboard</button>
+    <button class="nav-tab">Kampanye</button>
+    <button class="nav-tab">Orders</button>
+  </nav>
+  <div class="header-right">
     <span class="last-updated" id="last-updated">Belum diperbarui</span>
     <span id="api-status-meta"></span>
     <span id="api-status-scalev"></span>
+    <button class="btn btn-primary" id="refresh-btn" onclick="refreshData()">
+      <span id="refresh-icon">↺</span> Refresh
+    </button>
+    <button class="btn" onclick="openSettings()">⚙</button>
+    <button class="btn hide-mobile" onclick="exportPng()">PNG</button>
+    <button class="btn hide-mobile" onclick="exportPdf()">PDF</button>
   </div>
-  <button class="btn btn-primary" id="refresh-btn" onclick="refreshData()">
-    <span id="refresh-icon">↺</span> Refresh
-  </button>
-  <button class="btn" onclick="openSettings()">⚙ Config</button>
-  <button class="btn hide-mobile" onclick="exportPng()">🖼 PNG</button>
-  <button class="btn hide-mobile" onclick="exportPdf()">📄 PDF</button>
 </header>
 
 <!-- Main Content -->
@@ -592,104 +606,179 @@
   <!-- ROAS Alert -->
   <div id="roas-alert"></div>
 
-  <!-- Summary Cards -->
-  <div class="cards-grid" id="cards-grid">
-    <div class="card" id="card-orders">
-      <div class="card-label">Total Orders</div>
-      <div class="card-value count-up" id="val-orders">—</div>
-    </div>
-    <div class="card" id="card-units">
-      <div class="card-label">Units Terjual</div>
-      <div class="card-value count-up" id="val-units">—</div>
-    </div>
-    <div class="card" id="card-revenue">
-      <div class="card-label">Net Revenue</div>
-      <div class="card-value count-up" id="val-revenue">—</div>
-    </div>
-    <div class="card" id="card-gross">
-      <div class="card-label">Gross Profit</div>
-      <div class="card-value count-up" id="val-gross">—</div>
-    </div>
-    <div class="card" id="card-net">
-      <div class="card-label">Net Profit</div>
-      <div class="card-value count-up" id="val-net">—</div>
-    </div>
-    <div class="card" id="card-spend">
-      <div class="card-label">Ad Spend</div>
-      <div class="card-value count-up" id="val-spend">—</div>
-    </div>
-    <div class="card" id="card-roas">
-      <div class="card-label">ROAS</div>
-      <div class="card-value count-up" id="val-roas">—</div>
-    </div>
-    <div class="card" id="card-margin">
-      <div class="card-label">Margin (%)</div>
-      <div class="card-value count-up" id="val-margin">—</div>
+  <!-- Page Title -->
+  <div class="page-title-row">
+    <div>
+      <div class="page-title">Dashboard Hari Ini</div>
+      <div class="page-subtitle">Data realtime dari Meta Ads & Scalev</div>
     </div>
   </div>
 
-  <!-- Cost Breakdown -->
-  <div class="section">
-    <div class="section-title">
-      📦 Cost Breakdown
-      <span id="breakdown-error"></span>
-    </div>
-    <div class="stacked-bar-wrap" id="stacked-bar-wrap">
-      <div class="state-box" style="padding:20px">
-        <span class="spinner"></span>
-        <span>Menunggu data...</span>
+  <!-- Hero Cards: 4 main metrics -->
+  <div class="hero-cards">
+    <div class="hero-card" id="card-revenue">
+      <div class="hero-card-accent indigo"></div>
+      <div class="hero-card-header">
+        <div class="hero-card-label">Net Revenue</div>
+        <div class="hero-card-icon indigo">💰</div>
       </div>
+      <div class="hero-card-value count-up" id="val-revenue">—</div>
+    </div>
+    <div class="hero-card" id="card-net">
+      <div class="hero-card-accent green"></div>
+      <div class="hero-card-header">
+        <div class="hero-card-label">Net Profit</div>
+        <div class="hero-card-icon green">📈</div>
+      </div>
+      <div class="hero-card-value count-up" id="val-net">—</div>
+    </div>
+    <div class="hero-card" id="card-roas">
+      <div class="hero-card-accent yellow"></div>
+      <div class="hero-card-header">
+        <div class="hero-card-label">ROAS</div>
+        <div class="hero-card-icon yellow">⚡</div>
+      </div>
+      <div class="hero-card-value count-up" id="val-roas">—</div>
+    </div>
+    <div class="hero-card" id="card-spend">
+      <div class="hero-card-accent red"></div>
+      <div class="hero-card-header">
+        <div class="hero-card-label">Ad Spend</div>
+        <div class="hero-card-icon red">📣</div>
+      </div>
+      <div class="hero-card-value count-up" id="val-spend">—</div>
     </div>
   </div>
 
-  <!-- Campaign Table -->
-  <div class="section">
-    <div class="section-title">
-      📣 Campaign Meta Ads
-      <span id="meta-error"></span>
+  <!-- Mini Cards: secondary metrics -->
+  <div class="mini-cards">
+    <div class="mini-card" id="card-orders">
+      <div class="mini-card-label">Total Orders</div>
+      <div class="mini-card-value count-up" id="val-orders">—</div>
     </div>
-    <div class="table-controls">
-      <button class="filter-btn active" data-filter="all" onclick="filterCampaigns('all', this)">Semua</button>
-      <button class="filter-btn" data-filter="active" onclick="filterCampaigns('active', this)">Aktif</button>
-      <button class="filter-btn" data-filter="paused" onclick="filterCampaigns('paused', this)">Paused</button>
+    <div class="mini-card" id="card-units">
+      <div class="mini-card-label">Units Terjual</div>
+      <div class="mini-card-value count-up" id="val-units">—</div>
     </div>
-    <div class="table-wrap">
-      <div id="campaign-table-wrap">
-        <div class="state-box">
-          <span class="spinner"></span>
-          <span>Memuat kampanye...</span>
+    <div class="mini-card" id="card-gross">
+      <div class="mini-card-label">Gross Profit</div>
+      <div class="mini-card-value count-up" id="val-gross">—</div>
+    </div>
+    <div class="mini-card" id="card-margin">
+      <div class="mini-card-label">Margin (%)</div>
+      <div class="mini-card-value count-up" id="val-margin">—</div>
+    </div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="two-col">
+
+    <!-- LEFT COLUMN -->
+    <div>
+
+      <!-- Cost Breakdown Panel -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div class="panel-title">Cost Breakdown</div>
+          <span id="breakdown-error"></span>
+        </div>
+        <div class="panel-body">
+          <div id="stacked-bar-wrap">
+            <div class="state-box" style="padding:16px">
+              <span class="spinner"></span>
+              <span>Menunggu data...</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Charts -->
-  <div class="charts-grid">
-    <div class="chart-box chart-full">
-      <div class="chart-title">Cost per Purchase per Campaign</div>
-      <canvas id="chart-cpp"></canvas>
-    </div>
-    <div class="chart-box">
-      <div class="chart-title">Spent vs Purchase per Campaign</div>
-      <canvas id="chart-spent-purchase"></canvas>
-    </div>
-    <div class="chart-box">
-      <div class="chart-title">Distribusi Quantity Order</div>
-      <canvas id="chart-qty-donut"></canvas>
-    </div>
-  </div>
-
-  <!-- Order Feed -->
-  <div class="section">
-    <div class="section-title">
-      🛒 Order Hari Ini
-      <span id="scalev-error"></span>
-    </div>
-    <div id="order-feed-wrap">
-      <div class="state-box">
-        <span class="spinner"></span>
-        <span>Memuat order...</span>
+      <!-- Campaign Analytics Table -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div class="panel-title">Analitik Kampanye</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="meta-error"></span>
+            <div class="table-controls">
+              <button class="filter-btn active" onclick="filterCampaigns('all', this)">Semua</button>
+              <button class="filter-btn" onclick="filterCampaigns('active', this)">Aktif</button>
+              <button class="filter-btn" onclick="filterCampaigns('paused', this)">Paused</button>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div id="campaign-table-wrap">
+            <div class="state-box">
+              <span class="spinner"></span>
+              <span>Memuat kampanye...</span>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- Charts: CPP + Spend vs Purchase -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div class="panel-title">Cost per Purchase per Kampanye</div>
+        </div>
+        <div class="panel-body">
+          <canvas id="chart-cpp"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Spend vs Purchase per Kampanye</div>
+        </div>
+        <div class="panel-body">
+          <canvas id="chart-spent-purchase"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN (sidebar) -->
+    <div>
+
+      <!-- Qty Donut Chart -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div class="panel-title">Distribusi Qty Order</div>
+        </div>
+        <div class="panel-body">
+          <canvas id="chart-qty-donut" style="max-height:200px"></canvas>
+        </div>
+      </div>
+
+      <!-- Cost breakdown stats -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div class="panel-title">Rincian Biaya</div>
+        </div>
+        <div class="panel-body no-pad" style="padding: 0 18px;">
+          <div class="stat-list" id="cost-stat-list">
+            <div class="stat-row"><span class="stat-label">HPP</span><span class="stat-val" id="stat-hpp">—</span></div>
+            <div class="stat-row"><span class="stat-label">Ad Spend</span><span class="stat-val red" id="stat-spend2">—</span></div>
+            <div class="stat-row"><span class="stat-label">Packaging</span><span class="stat-val" id="stat-pkg">—</span></div>
+            <div class="stat-row"><span class="stat-label">Scalev + Fee</span><span class="stat-val" id="stat-fee">—</span></div>
+            <div class="stat-row"><span class="stat-label">Gross Profit</span><span class="stat-val green" id="stat-gross2">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Feed -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Order Hari Ini</div>
+          <span id="scalev-error"></span>
+        </div>
+        <div id="order-feed-wrap">
+          <div class="state-box">
+            <span class="spinner"></span>
+            <span>Memuat order...</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -697,7 +786,7 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
-// CONFIG — loaded from localStorage, defaults applied if not set
+// CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG = {
@@ -732,30 +821,28 @@ function saveConfig(patch) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const state = {
-  campaigns: [],         // raw campaign objects from Meta
-  orders: [],            // raw order objects from Scalev
-  metrics: null,         // calculated metrics object
+  campaigns: [],
+  orders: [],
+  metrics: null,
   loading: false,
   metaError: null,
   scalevError: null,
-  roasAlertFired: false, // only beep once per threshold breach
+  roasAlertFired: false,
   sortCol: 'spend',
   sortDir: 'desc',
   campaignFilter: 'all',
-  charts: {},            // chart instances
+  charts: {},
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FORMATTING UTILITIES
+// FORMATTING
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Format as Indonesian Rupiah */
 function rupiah(n) {
   if (n == null || isNaN(n)) return '—';
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
 }
 
-/** Format as compact IDR for charts */
 function rupiahShort(n) {
   if (Math.abs(n) >= 1_000_000) return 'Rp ' + (n / 1_000_000).toFixed(1) + 'jt';
   if (Math.abs(n) >= 1_000) return 'Rp ' + (n / 1_000).toFixed(0) + 'rb';
@@ -776,13 +863,11 @@ function todayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Return today's date range in UTC accounting for WIB (UTC+7) */
 function wibTodayUTC() {
   const now = new Date();
-  // WIB midnight = UTC 17:00 previous day
   const todayWib = new Date(now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }));
-  const since = new Date(todayWib.getTime() - 7 * 60 * 60 * 1000); // 00:00 WIB → UTC
-  const until = new Date(todayWib.getTime() + 17 * 60 * 60 * 1000 - 1000); // 23:59:59 WIB → UTC
+  const since = new Date(todayWib.getTime() - 7 * 60 * 60 * 1000);
+  const until = new Date(todayWib.getTime() + 17 * 60 * 60 * 1000 - 1000);
   return {
     since: since.toISOString().replace('.000Z', 'Z'),
     until: until.toISOString().replace('.000Z', 'Z'),
@@ -798,17 +883,8 @@ function formatTime(isoString) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // META ADS API
-// NOTE: Meta Ads API blocks CORS from browsers. In production, route these
-// requests through a backend proxy (e.g. a Vercel/Cloudflare function) or use
-// Meta's JavaScript SDK with the business SDK. The URL below will fail CORS in
-// a plain browser — add your proxy base URL in the config if needed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Fetch campaign insights from Meta Ads API.
- * @param {typeof DEFAULT_CONFIG} cfg
- * @returns {Promise<Array>}
- */
 async function fetchMetaAds(cfg) {
   if (!cfg.metaToken || !cfg.metaAccountId) {
     throw new Error('Meta Ads credentials not configured');
@@ -817,8 +893,6 @@ async function fetchMetaAds(cfg) {
   const accountId = cfg.metaAccountId.replace(/^act_/, '');
   const token = cfg.metaToken;
 
-  // Fetch insights and campaign statuses in parallel
-  // effective_status is NOT a valid insights field — must be fetched from /campaigns
   const insightsParams = new URLSearchParams({
     fields: 'campaign_name,campaign_id,spend,impressions,clicks,ctr,cpm,reach,actions,cost_per_action_type',
     date_preset: 'today',
@@ -844,7 +918,6 @@ async function fetchMetaAds(cfg) {
   const insightsData = await insightsRes.json();
   if (insightsData.error) throw new Error(insightsData.error.message);
 
-  // Build a map of campaign_id → effective_status
   const statusMap = {};
   if (statusRes.ok) {
     const sd = await statusRes.json().catch(() => ({}));
@@ -874,23 +947,14 @@ function extractAction(actions, type) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCALEV API
-// NOTE: Scalev API may block browser CORS. If requests fail with CORS errors,
-// proxy through a backend (e.g. Next.js API route, Cloudflare Worker). Set your
-// proxy base URL in the Scalev Base URL config field.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Fetch today's orders from Scalev API.
- * @param {typeof DEFAULT_CONFIG} cfg
- * @returns {Promise<Array>}
- */
 async function fetchScalev(cfg) {
   if (!cfg.scalevKey || !cfg.scalevBaseUrl) {
     throw new Error('Scalev credentials not configured');
   }
 
   const base = cfg.scalevBaseUrl.replace(/\/$/, '');
-  // Use WIB (UTC+7) midnight as the day boundary, not UTC midnight
   const { since, until } = wibTodayUTC();
   const headers = {
     'Authorization': `Bearer ${cfg.scalevKey}`,
@@ -901,7 +965,6 @@ async function fetchScalev(cfg) {
   let cursor = null;
   let page = 0;
 
-  // Paginate through all results (page_size max 25 per Scalev API)
   do {
     const params = new URLSearchParams({
       page_size: 25,
@@ -923,14 +986,13 @@ async function fetchScalev(cfg) {
 
     cursor = data.has_next ? data.next_cursor : null;
     page++;
-    if (page > 40) break; // safety limit: max 1000 orders
+    if (page > 40) break;
   } while (cursor);
 
   return allOrders.map(o => ({
     order_id: o.order_id || o.id || '—',
     order_status: o.status || 'unknown',
     payment_status: o.payment_status || 'unknown',
-    // net_revenue excludes shipping cost (product revenue only)
     net_revenue: parseFloat(o.net_revenue || 0),
     quantity: parseInt(o.total_quantity || 1),
     scalev_fee: parseFloat(o.scalev_fee || 0),
@@ -943,12 +1005,6 @@ async function fetchScalev(cfg) {
 // PROFIT CALCULATION
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Calculate all profit metrics from raw data.
- * @param {Array} orders
- * @param {Array} campaigns
- * @param {typeof DEFAULT_CONFIG} cfg
- */
 function calculateMetrics(orders, campaigns, cfg) {
   const net_revenue = orders.reduce((s, o) => s + o.net_revenue, 0);
   const total_units = orders.reduce((s, o) => s + o.quantity, 0);
@@ -965,7 +1021,6 @@ function calculateMetrics(orders, campaigns, cfg) {
   const margin = net_revenue > 0 ? (net_profit / net_revenue) * 100 : 0;
   const roas = ad_spend > 0 ? net_revenue / ad_spend : 0;
 
-  // quantity distribution for donut chart
   const qty_dist = {};
   orders.forEach(o => {
     const k = `${o.quantity} unit`;
@@ -973,24 +1028,14 @@ function calculateMetrics(orders, campaigns, cfg) {
   });
 
   return {
-    net_revenue,
-    total_units,
-    total_orders,
-    hpp_total,
-    packaging_total,
-    scalev_fee_total,
-    payment_fee_total,
-    ad_spend,
-    gross_profit,
-    net_profit,
-    margin,
-    roas,
-    qty_dist,
+    net_revenue, total_units, total_orders,
+    hpp_total, packaging_total, scalev_fee_total, payment_fee_total,
+    ad_spend, gross_profit, net_profit, margin, roas, qty_dist,
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RENDER — SUMMARY CARDS
+// RENDER — CARDS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function renderCards(m, cfg) {
@@ -1006,17 +1051,22 @@ function renderCards(m, cfg) {
   animateValue('val-roas', m.roas, formatRoas);
   animateValue('val-margin', m.margin, v => pct(v));
 
-  // Net profit coloring
   netCard.classList.remove('positive', 'negative');
   netCard.classList.add(m.net_profit >= 0 ? 'positive' : 'negative');
 
-  // ROAS coloring
   roasCard.classList.remove('positive', 'negative', 'warn');
   if (m.roas >= cfg.roasThreshold) roasCard.classList.add('positive');
   else if (m.roas > 0) roasCard.classList.add('negative');
+
+  // Sidebar cost breakdown stats
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText('stat-hpp', rupiah(m.hpp_total));
+  setText('stat-spend2', rupiah(m.ad_spend));
+  setText('stat-pkg', rupiah(m.packaging_total));
+  setText('stat-fee', rupiah(m.scalev_fee_total + m.payment_fee_total));
+  setText('stat-gross2', rupiah(m.gross_profit));
 }
 
-/** Animated count-up effect */
 function animateValue(id, target, formatter) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1039,26 +1089,26 @@ function animateValue(id, target, formatter) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STACK_COLORS = {
-  'Ad Spend': '#e05252',
-  'HPP': '#4a9eff',
-  'Scalev + Fee': '#e0aa3e',
-  'Packaging': '#9b59b6',
-  'Net Profit': '#1D9E75',
+  'Ad Spend':     '#EF4444',
+  'HPP':          '#6366F1',
+  'Scalev + Fee': '#F59E0B',
+  'Packaging':    '#8B5CF6',
+  'Net Profit':   '#10B981',
 };
 
 function renderStackedBar(m) {
   const wrap = document.getElementById('stacked-bar-wrap');
   if (!m || m.net_revenue <= 0) {
-    wrap.innerHTML = '<div class="state-box" style="padding:20px"><span>Tidak ada data revenue</span></div>';
+    wrap.innerHTML = '<div class="state-box" style="padding:16px"><span>Tidak ada data revenue</span></div>';
     return;
   }
 
   const segments = [
-    { label: 'Ad Spend', value: m.ad_spend },
-    { label: 'HPP', value: m.hpp_total },
+    { label: 'Ad Spend',     value: m.ad_spend },
+    { label: 'HPP',          value: m.hpp_total },
     { label: 'Scalev + Fee', value: m.scalev_fee_total + m.payment_fee_total },
-    { label: 'Packaging', value: m.packaging_total },
-    { label: 'Net Profit', value: Math.max(m.net_profit, 0) },
+    { label: 'Packaging',    value: m.packaging_total },
+    { label: 'Net Profit',   value: Math.max(m.net_profit, 0) },
   ];
 
   const total = segments.reduce((s, seg) => s + Math.max(seg.value, 0), 0) || 1;
@@ -1066,7 +1116,7 @@ function renderStackedBar(m) {
   const barHTML = segments.map(seg => {
     const pctVal = (Math.max(seg.value, 0) / total * 100).toFixed(1);
     return `<div class="stacked-seg"
-      style="background:${STACK_COLORS[seg.label]};width:${pctVal}%;opacity:0.85"
+      style="background:${STACK_COLORS[seg.label]};width:${pctVal}%"
       data-label="${seg.label}"
       data-value="${rupiah(seg.value)}"
       data-pct="${pctVal}%"
@@ -1085,7 +1135,6 @@ function renderStackedBar(m) {
     <div class="stacked-legend">${legendHTML}</div>
   `;
 
-  // Tooltip for bar segments
   wrap.querySelectorAll('.stacked-seg').forEach(seg => {
     seg.addEventListener('mousemove', e => showTip(e, `${seg.dataset.label}: ${seg.dataset.value} (${seg.dataset.pct})`));
     seg.addEventListener('mouseleave', hideTip);
@@ -1103,7 +1152,6 @@ function renderCampaignTable() {
   if (state.campaignFilter === 'active') data = data.filter(c => c.status === 'ACTIVE');
   if (state.campaignFilter === 'paused') data = data.filter(c => c.status !== 'ACTIVE');
 
-  // Sorting
   data.sort((a, b) => {
     let va = a[state.sortCol] ?? 0;
     let vb = b[state.sortCol] ?? 0;
@@ -1121,14 +1169,14 @@ function renderCampaignTable() {
 
   const cols = [
     { key: 'campaign_name', label: 'Kampanye' },
-    { key: 'status', label: 'Status' },
-    { key: 'spend', label: 'Spend' },
-    { key: 'impressions', label: 'Impresi' },
-    { key: 'clicks', label: 'Klik' },
-    { key: 'ctr', label: 'CTR' },
-    { key: 'cpm', label: 'CPM' },
-    { key: 'purchases', label: 'Purchase' },
-    { key: 'cpp', label: 'Cost/Purchase' },
+    { key: 'status',        label: 'Status' },
+    { key: 'spend',         label: 'Spend' },
+    { key: 'impressions',   label: 'Impresi' },
+    { key: 'clicks',        label: 'Klik' },
+    { key: 'ctr',           label: 'CTR' },
+    { key: 'cpm',           label: 'CPM' },
+    { key: 'purchases',     label: 'Purchase' },
+    { key: 'cpp',           label: 'Cost/Purchase' },
   ];
 
   const arrow = dir => dir === 'asc' ? '↑' : '↓';
@@ -1157,8 +1205,8 @@ function renderCampaignTable() {
       <td>${c.clicks.toLocaleString('id-ID')}</td>
       <td>${c.ctr.toFixed(2)}%</td>
       <td>${rupiah(c.cpm)}</td>
-      <td>${c.purchases > 0 ? c.purchases : '<span style="color:var(--text-muted)">0</span>'}</td>
-      <td class="${cppClass}">${c.cpp > 0 ? rupiah(c.cpp) : '<span style="color:var(--red)">—</span>'}</td>
+      <td>${c.purchases > 0 ? c.purchases : '<span style="color:#94A3B8">0</span>'}</td>
+      <td class="${cppClass}">${c.cpp > 0 ? rupiah(c.cpp) : '<span style="color:#EF4444">—</span>'}</td>
     </tr>`;
   }).join('');
 
@@ -1188,25 +1236,26 @@ function filterCampaigns(filter, btn) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RENDER — CHARTS
+// RENDER — CHARTS (light theme)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CHART_DEFAULTS = {
   responsive: true,
   maintainAspectRatio: true,
   plugins: {
-    legend: { labels: { color: '#888', font: { size: 11 } } },
+    legend: { labels: { color: '#64748B', font: { size: 11 } } },
     tooltip: {
-      backgroundColor: '#111',
-      borderColor: '#2a2a2a',
+      backgroundColor: '#1E293B',
+      borderColor: '#334155',
       borderWidth: 1,
-      titleColor: '#e8e8e8',
-      bodyColor: '#aaa',
+      titleColor: '#F8FAFC',
+      bodyColor: '#94A3B8',
+      padding: 10,
     },
   },
   scales: {
-    x: { ticks: { color: '#666', font: { size: 10 } }, grid: { color: '#1f1f1f' } },
-    y: { ticks: { color: '#666', font: { size: 10 } }, grid: { color: '#1f1f1f' } },
+    x: { ticks: { color: '#94A3B8', font: { size: 10 } }, grid: { color: '#F1F5F9' } },
+    y: { ticks: { color: '#94A3B8', font: { size: 10 } }, grid: { color: '#F1F5F9' } },
   },
 };
 
@@ -1227,9 +1276,9 @@ function renderCharts(m) {
     const labels = campaigns.map(c => truncate(c.campaign_name, 20));
     const data = campaigns.map(c => c.cpp || 0);
     const bgColors = campaigns.map(c => {
-      if (c.purchases === 0) return 'rgba(224,82,82,0.7)';
-      if (c.status === 'ACTIVE') return 'rgba(29,158,117,0.7)';
-      return 'rgba(100,100,100,0.6)';
+      if (c.purchases === 0) return 'rgba(239,68,68,0.65)';
+      if (c.status === 'ACTIVE') return 'rgba(99,102,241,0.7)';
+      return 'rgba(148,163,184,0.5)';
     });
 
     state.charts.cpp = new Chart(document.getElementById('chart-cpp'), {
@@ -1240,7 +1289,7 @@ function renderCharts(m) {
           label: 'Cost per Purchase (Rp)',
           data,
           backgroundColor: bgColors,
-          borderRadius: 4,
+          borderRadius: 6,
         }],
       },
       options: {
@@ -1254,13 +1303,13 @@ function renderCharts(m) {
         },
         scales: {
           ...CHART_DEFAULTS.scales,
-          y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: rupiahShort } },
+          y: { ...CHART_DEFAULTS.scales.y, ticks: { color: '#94A3B8', font: { size: 10 }, callback: rupiahShort } },
         },
       },
     });
   }
 
-  // Chart B: Spent + Purchase mixed
+  // Chart B: Spend + Purchase
   {
     destroyChart('spentpurchase');
     const labels = campaigns.map(c => truncate(c.campaign_name, 18));
@@ -1273,17 +1322,18 @@ function renderCharts(m) {
             type: 'bar',
             label: 'Spend (Rp)',
             data: campaigns.map(c => c.spend),
-            backgroundColor: 'rgba(74,158,255,0.6)',
-            borderRadius: 4,
+            backgroundColor: 'rgba(99,102,241,0.55)',
+            borderRadius: 6,
             yAxisID: 'y',
           },
           {
             type: 'line',
             label: 'Purchases',
             data: campaigns.map(c => c.purchases),
-            borderColor: '#1D9E75',
-            backgroundColor: 'rgba(29,158,117,0.15)',
-            pointBackgroundColor: '#1D9E75',
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16,185,129,0.1)',
+            pointBackgroundColor: '#10B981',
+            pointRadius: 5,
             tension: 0.3,
             yAxisID: 'y1',
           },
@@ -1296,11 +1346,12 @@ function renderCharts(m) {
           y: {
             ...CHART_DEFAULTS.scales.y,
             position: 'left',
-            ticks: { color: '#666', font: { size: 10 }, callback: rupiahShort },
+            ticks: { color: '#94A3B8', font: { size: 10 }, callback: rupiahShort },
+            grid: { color: '#F1F5F9' },
           },
           y1: {
             position: 'right',
-            ticks: { color: '#666', font: { size: 10 } },
+            ticks: { color: '#94A3B8', font: { size: 10 } },
             grid: { drawOnChartArea: false },
           },
         },
@@ -1308,12 +1359,12 @@ function renderCharts(m) {
     });
   }
 
-  // Chart C: Qty distribution donut
+  // Chart C: Qty donut
   if (m) {
     destroyChart('qty');
     const labels = Object.keys(m.qty_dist);
     const data = Object.values(m.qty_dist);
-    const palette = ['#1D9E75', '#4a9eff', '#e0aa3e', '#9b59b6', '#e05252', '#3498db'];
+    const palette = ['#6366F1','#10B981','#F59E0B','#EF4444','#8B5CF6','#3B82F6'];
     state.charts.qty = new Chart(document.getElementById('chart-qty-donut'), {
       type: 'doughnut',
       data: {
@@ -1321,8 +1372,8 @@ function renderCharts(m) {
         datasets: [{
           data,
           backgroundColor: palette.slice(0, labels.length),
-          borderColor: '#1a1a1a',
-          borderWidth: 2,
+          borderColor: '#FFFFFF',
+          borderWidth: 3,
         }],
       },
       options: {
@@ -1373,7 +1424,7 @@ function renderOrderFeed() {
             <div class="order-id">#${o.order_id}</div>
           </div>
           <div>${statusBadge(o.order_status)}</div>
-          <div style="color:var(--text-muted);font-size:.78rem">${o.quantity}x</div>
+          <div style="color:#94A3B8;font-size:.75rem">${o.quantity}x</div>
           <div class="order-rev">${rupiah(o.net_revenue)}</div>
         </div>
       `).join('')}
@@ -1396,9 +1447,6 @@ function statusBadge(status) {
 // ROAS ALERT
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Play a single beep via Web Audio API.
- */
 function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1429,7 +1477,7 @@ function checkRoasAlert(roas, threshold) {
     }
   } else {
     alertEl.style.display = 'none';
-    state.roasAlertFired = false; // reset so next breach fires again
+    state.roasAlertFired = false;
   }
 }
 
@@ -1443,12 +1491,9 @@ function sendOsNotification(roas, threshold) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN DATA REFRESH
+// MAIN REFRESH
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Fetch all data, calculate metrics, and render all dashboard sections.
- */
 async function refreshData() {
   if (state.loading) return;
   state.loading = true;
@@ -1457,13 +1502,11 @@ async function refreshData() {
   const cfg = loadConfig();
   const timestamp = `[${new Date().toLocaleTimeString('id-ID')}]`;
 
-  // Parallel fetch — Meta and Scalev are independent
   const [metaResult, scalevResult] = await Promise.allSettled([
     fetchMetaAds(cfg),
     fetchScalev(cfg),
   ]);
 
-  // Handle Meta result
   if (metaResult.status === 'fulfilled') {
     state.campaigns = metaResult.value;
     state.metaError = null;
@@ -1474,7 +1517,6 @@ async function refreshData() {
     if (!state.campaigns.length) state.campaigns = generateMockCampaigns();
   }
 
-  // Handle Scalev result
   if (scalevResult.status === 'fulfilled') {
     state.orders = scalevResult.value;
     state.scalevError = null;
@@ -1485,10 +1527,8 @@ async function refreshData() {
     if (!state.orders.length) state.orders = generateMockOrders();
   }
 
-  // Calculate metrics
   state.metrics = calculateMetrics(state.orders, state.campaigns, cfg);
 
-  // Render everything
   renderCards(state.metrics, cfg);
   renderStackedBar(state.metrics);
   renderCampaignTable();
@@ -1503,15 +1543,15 @@ async function refreshData() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MOCK DATA (shown when APIs are not configured / fail)
+// MOCK DATA
 // ─────────────────────────────────────────────────────────────────────────────
 
 function generateMockCampaigns() {
   return [
-    { campaign_id: '1', campaign_name: 'Bantal Leher — Retargeting', status: 'ACTIVE', spend: 350000, impressions: 42000, clicks: 820, ctr: 1.95, cpm: 8333, reach: 38000, purchases: 12, cpp: 29167 },
-    { campaign_id: '2', campaign_name: 'Bantal Leher — Lookalike 1%', status: 'ACTIVE', spend: 280000, impressions: 55000, clicks: 650, ctr: 1.18, cpm: 5091, reach: 50000, purchases: 7, cpp: 40000 },
-    { campaign_id: '3', campaign_name: 'Bantal Leher — Interest Health', status: 'PAUSED', spend: 120000, impressions: 18000, clicks: 210, ctr: 1.17, cpm: 6667, reach: 16000, purchases: 3, cpp: 40000 },
-    { campaign_id: '4', campaign_name: 'Bantal Leher — Broad TEST', status: 'ACTIVE', spend: 95000, impressions: 30000, clicks: 290, ctr: 0.97, cpm: 3167, reach: 28000, purchases: 0, cpp: 0 },
+    { campaign_id: '1', campaign_name: 'Bantal Leher — Retargeting',    status: 'ACTIVE', spend: 350000, impressions: 42000, clicks: 820, ctr: 1.95, cpm: 8333, reach: 38000, purchases: 12, cpp: 29167 },
+    { campaign_id: '2', campaign_name: 'Bantal Leher — Lookalike 1%',   status: 'ACTIVE', spend: 280000, impressions: 55000, clicks: 650, ctr: 1.18, cpm: 5091, reach: 50000, purchases: 7,  cpp: 40000 },
+    { campaign_id: '3', campaign_name: 'Bantal Leher — Interest Health', status: 'PAUSED', spend: 120000, impressions: 18000, clicks: 210, ctr: 1.17, cpm: 6667, reach: 16000, purchases: 3,  cpp: 40000 },
+    { campaign_id: '4', campaign_name: 'Bantal Leher — Broad TEST',     status: 'ACTIVE', spend: 95000,  impressions: 30000, clicks: 290, ctr: 0.97, cpm: 3167, reach: 28000, purchases: 0,  cpp: 0 },
   ];
 }
 
@@ -1545,7 +1585,6 @@ function updateLastUpdated() {
   const now = new Date();
   el.textContent = `Updated ${now.toLocaleTimeString('id-ID')}`;
 
-  // Start "X min ago" counter
   clearInterval(window._agoInterval);
   window._agoInterval = setInterval(() => {
     const diff = Math.round((Date.now() - now) / 60000);
@@ -1600,7 +1639,7 @@ document.addEventListener('mousemove', e => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SETTINGS PANEL
+// SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function openSettings() {
@@ -1633,7 +1672,6 @@ function saveSettings() {
   refreshData();
 }
 
-// Close overlay on backdrop click
 document.getElementById('settings-overlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeSettings();
 });
@@ -1642,16 +1680,11 @@ document.getElementById('settings-overlay').addEventListener('click', e => {
 // EXPORT
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Export dashboard as PNG using html2canvas.
- */
 async function exportPng() {
   try {
     const canvas = await html2canvas(document.getElementById('dashboard'), {
-      backgroundColor: '#0f0f0f',
-      scale: 2,
-      useCORS: true,
-      logging: false,
+      backgroundColor: '#F1F5F9',
+      scale: 2, useCORS: true, logging: false,
     });
     const link = document.createElement('a');
     link.download = `profit-dashboard-${todayString()}.png`;
@@ -1663,17 +1696,12 @@ async function exportPng() {
   }
 }
 
-/**
- * Export dashboard as PDF (A4 landscape) using jsPDF + html2canvas.
- */
 async function exportPdf() {
   try {
     const { jsPDF } = window.jspdf;
     const canvas = await html2canvas(document.getElementById('dashboard'), {
-      backgroundColor: '#0f0f0f',
-      scale: 1.5,
-      useCORS: true,
-      logging: false,
+      backgroundColor: '#F1F5F9',
+      scale: 1.5, useCORS: true, logging: false,
     });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -1688,7 +1716,6 @@ async function exportPdf() {
       pdf.addImage(imgData, 'PNG', 0, -y, pageW, imgH);
       y += pageH;
     }
-
     pdf.save(`profit-dashboard-${todayString()}.pdf`);
   } catch (e) {
     console.error('[Dashboard] PDF export failed:', e);
@@ -1697,7 +1724,7 @@ async function exportPdf() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AUTO-REFRESH (every 5 minutes)
+// AUTO-REFRESH (5 min)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
@@ -1706,13 +1733,13 @@ let autoRefreshTimer = null;
 function startAutoRefresh() {
   clearInterval(autoRefreshTimer);
   autoRefreshTimer = setInterval(() => {
-    console.log(`[Dashboard] Auto-refresh triggered at ${new Date().toLocaleTimeString('id-ID')}`);
+    console.log(`[Dashboard] Auto-refresh at ${new Date().toLocaleTimeString('id-ID')}`);
     refreshData();
   }, AUTO_REFRESH_MS);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BROWSER NOTIFICATION PERMISSION
+// NOTIFICATIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function requestNotificationPermission() {
@@ -1722,10 +1749,6 @@ function requestNotificationPermission() {
     });
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOGIN GATE
@@ -1756,7 +1779,6 @@ function init() {
   refreshData();
 }
 
-// Jalankan init hanya jika sudah login
 if (sessionStorage.getItem('pmAuth') === 'ok') {
   init();
 }
