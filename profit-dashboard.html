@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profit Monitor Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --text-muted: #888;
+    --green: #1D9E75;
+    --green-dim: #155c45;
+    --red: #e05252;
+    --red-dim: #5c2020;
+    --yellow: #e0aa3e;
+    --blue: #4a9eff;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  html { font-size: 14px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #0f0f0fcc;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .app-header h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--green);
+    flex: 1;
+    white-space: nowrap;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .last-updated {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .main { padding: 16px 20px 40px; max-width: 1600px; margin: 0 auto; }
+
+  /* ─── ALERT BANNER ─── */
+  #roas-alert {
+    display: none;
+    background: var(--red-dim);
+    border: 1px solid var(--red);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: var(--red);
+    font-size: 0.9rem;
+    animation: pulse-border 2s infinite;
+  }
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--red); }
+    50% { border-color: #ff000080; }
+  }
+
+  /* ─── SUMMARY CARDS ─── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (min-width: 640px) { .cards-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1024px) { .cards-grid { grid-template-columns: repeat(8, 1fr); } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #3a3a3a; }
+  .card-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card.positive .card-value { color: var(--green); }
+  .card.negative .card-value { color: var(--red); }
+  .card.warn .card-value { color: var(--yellow); }
+
+  /* ─── SECTION ─── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ─── STACKED BAR ─── */
+  .stacked-bar-wrap { overflow: hidden; }
+  .stacked-bar {
+    display: flex;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    gap: 1px;
+  }
+  .stacked-seg {
+    position: relative;
+    cursor: default;
+    min-width: 2px;
+    transition: filter 0.15s;
+  }
+  .stacked-seg:hover { filter: brightness(1.2); }
+  .stacked-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* tooltip */
+  .tip {
+    position: fixed;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .tip.visible { opacity: 1; }
+
+  /* ─── CAMPAIGN TABLE ─── */
+  .table-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active {
+    background: var(--green-dim);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text); }
+  th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+  th.sorted .sort-arrow { opacity: 1; color: var(--green); }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #1f1f1f;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1f1f1f; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .badge-active { background: var(--green-dim); color: var(--green); }
+  .badge-paused { background: #2a2a2a; color: var(--text-muted); }
+  .badge-pending { background: #3a2e10; color: var(--yellow); }
+  .badge-confirmed { background: var(--green-dim); color: var(--green); }
+  .badge-cancelled { background: var(--red-dim); color: var(--red); }
+
+  .cpp-green { color: var(--green); font-weight: 600; }
+  .cpp-red { color: var(--red); font-weight: 600; }
+  .cpp-yellow { color: var(--yellow); font-weight: 600; }
+
+  /* ─── CHARTS ─── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr 1fr; }
+    .chart-full { grid-column: 1 / -1; }
+  }
+  .chart-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .chart-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  canvas { max-height: 260px; }
+
+  /* ─── ORDER FEED ─── */
+  .order-feed {
+    max-height: 320px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .order-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid #1f1f1f;
+    font-size: 0.82rem;
+  }
+  .order-item:last-child { border-bottom: none; }
+  .order-id { font-family: monospace; font-size: 0.75rem; color: var(--text-muted); }
+  .order-time { font-size: 0.72rem; color: var(--text-muted); }
+  .order-rev { font-weight: 600; color: var(--green); }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: #3a3a3a; background: #2a2a2a; }
+  .btn-primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .btn-primary:hover { background: #1d6e52; }
+  .btn-icon { padding: 7px 10px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ─── SETTINGS PANEL ─── */
+  .settings-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000000aa;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+  }
+  .settings-overlay.open { display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .settings-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .settings-panel h2 {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .form-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus { outline: none; border-color: var(--green); }
+  .settings-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .form-divider {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 18px 0 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  /* ─── SPINNER ─── */
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── LOADING / ERROR STATE ─── */
+  .state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .state-box .big-icon { font-size: 2.5rem; }
+  .error-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--red-dim);
+    color: var(--red);
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* ─── RESPONSIVE HELPERS ─── */
+  @media (max-width: 639px) {
+    .hide-mobile { display: none !important; }
+    .app-header h1 { font-size: 0.95rem; }
+    .card-value { font-size: 1rem; }
+  }
+  @media (max-width: 899px) {
+    .chart-full { grid-column: auto; }
+  }
+
+  /* ─── COUNT-UP ─── */
+  .count-up { transition: opacity 0.3s; }
+  .count-up.loading { opacity: 0.3; }
+</style>
+</head>
+<body>
+
+<!-- Tooltip -->
+<div class="tip" id="tooltip"></div>
+
+<!-- Settings Overlay -->
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-panel">
+    <h2>
+      <span>⚙ Konfigurasi</span>
+      <button class="btn btn-icon" onclick="closeSettings()" title="Tutup">✕</button>
+    </h2>
+
+    <div class="form-divider">Meta Ads API</div>
+    <div class="form-group">
+      <label>Access Token</label>
+      <input type="password" id="cfg-meta-token" placeholder="EAAxxxxxxxxxxxxxxx">
+    </div>
+    <div class="form-group">
+      <label>Ad Account ID</label>
+      <input type="text" id="cfg-meta-account" placeholder="act_123456789">
+    </div>
+
+    <div class="form-divider">Scalev API</div>
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="password" id="cfg-scalev-key" placeholder="sk_live_xxxxxxxx">
+    </div>
+    <div class="form-group">
+      <label>Base URL</label>
+      <input type="text" id="cfg-scalev-url" placeholder="https://api.scalev.id/v1">
+    </div>
+
+    <div class="form-divider">Cost Variables</div>
+    <div class="form-group">
+      <label>HPP per Unit (Rp)</label>
+      <input type="number" id="cfg-hpp" placeholder="46000" min="0">
+    </div>
+    <div class="form-group">
+      <label>Biaya Packaging per Order (Rp)</label>
+      <input type="number" id="cfg-packaging" placeholder="1000" min="0">
+    </div>
+
+    <div class="form-divider">Alert Threshold</div>
+    <div class="form-group">
+      <label>ROAS Minimum Alert</label>
+      <input type="number" id="cfg-roas-threshold" placeholder="2.0" min="0" step="0.1">
+    </div>
+
+    <div class="settings-footer">
+      <button class="btn" onclick="closeSettings()">Batal</button>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Simpan & Refresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- App Header -->
+<header class="app-header">
+  <h1>📊 Profit Monitor</h1>
+  <div class="header-meta">
+    <span class="last-updated" id="last-updated">Belum diperbarui</span>
+    <span id="api-status-meta"></span>
+    <span id="api-status-scalev"></span>
+  </div>
+  <button class="btn btn-primary" id="refresh-btn" onclick="refreshData()">
+    <span id="refresh-icon">↺</span> Refresh
+  </button>
+  <button class="btn" onclick="openSettings()">⚙ Config</button>
+  <button class="btn hide-mobile" onclick="exportPng()">🖼 PNG</button>
+  <button class="btn hide-mobile" onclick="exportPdf()">📄 PDF</button>
+</header>
+
+<!-- Main Content -->
+<main class="main" id="dashboard">
+
+  <!-- ROAS Alert -->
+  <div id="roas-alert"></div>
+
+  <!-- Summary Cards -->
+  <div class="cards-grid" id="cards-grid">
+    <div class="card" id="card-orders">
+      <div class="card-label">Total Orders</div>
+      <div class="card-value count-up" id="val-orders">—</div>
+    </div>
+    <div class="card" id="card-units">
+      <div class="card-label">Units Terjual</div>
+      <div class="card-value count-up" id="val-units">—</div>
+    </div>
+    <div class="card" id="card-revenue">
+      <div class="card-label">Net Revenue</div>
+      <div class="card-value count-up" id="val-revenue">—</div>
+    </div>
+    <div class="card" id="card-gross">
+      <div class="card-label">Gross Profit</div>
+      <div class="card-value count-up" id="val-gross">—</div>
+    </div>
+    <div class="card" id="card-net">
+      <div class="card-label">Net Profit</div>
+      <div class="card-value count-up" id="val-net">—</div>
+    </div>
+    <div class="card" id="card-spend">
+      <div class="card-label">Ad Spend</div>
+      <div class="card-value count-up" id="val-spend">—</div>
+    </div>
+    <div class="card" id="card-roas">
+      <div class="card-label">ROAS</div>
+      <div class="card-value count-up" id="val-roas">—</div>
+    </div>
+    <div class="card" id="card-margin">
+      <div class="card-label">Margin (%)</div>
+      <div class="card-value count-up" id="val-margin">—</div>
+    </div>
+  </div>
+
+  <!-- Cost Breakdown -->
+  <div class="section">
+    <div class="section-title">
+      📦 Cost Breakdown
+      <span id="breakdown-error"></span>
+    </div>
+    <div class="stacked-bar-wrap" id="stacked-bar-wrap">
+      <div class="state-box" style="padding:20px">
+        <span class="spinner"></span>
+        <span>Menunggu data...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Campaign Table -->
+  <div class="section">
+    <div class="section-title">
+      📣 Campaign Meta Ads
+      <span id="meta-error"></span>
+    </div>
+    <div class="table-controls">
+      <button class="filter-btn active" data-filter="all" onclick="filterCampaigns('all', this)">Semua</button>
+      <button class="filter-btn" data-filter="active" onclick="filterCampaigns('active', this)">Aktif</button>
+      <button class="filter-btn" data-filter="paused" onclick="filterCampaigns('paused', this)">Paused</button>
+    </div>
+    <div class="table-wrap">
+      <div id="campaign-table-wrap">
+        <div class="state-box">
+          <span class="spinner"></span>
+          <span>Memuat kampanye...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-box chart-full">
+      <div class="chart-title">Cost per Purchase per Campaign</div>
+      <canvas id="chart-cpp"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Spent vs Purchase per Campaign</div>
+      <canvas id="chart-spent-purchase"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Distribusi Quantity Order</div>
+      <canvas id="chart-qty-donut"></canvas>
+    </div>
+  </div>
+
+  <!-- Order Feed -->
+  <div class="section">
+    <div class="section-title">
+      🛒 Order Hari Ini
+      <span id="scalev-error"></span>
+    </div>
+    <div id="order-feed-wrap">
+      <div class="state-box">
+        <span class="spinner"></span>
+        <span>Memuat order...</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG — loaded from localStorage, defaults applied if not set
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEFAULT_CONFIG = {
+  metaToken: 'EAAOENl6W3U8BRmnqqHaff7JiRn3ODZAYGjT3sPKWDIO860mjYi4Ux3erjZBd76ML1P954ukPmvEd4ZAqwKlvjZBDZAG7TUo5HFgqqcdUJZAJ37ocl0cQPXFev516ZAFoLftWphbYSpyD8ZAKMcyVFcWQRw3SQ505BMRDqsqT6yjFiSBcVgGzsrON9skZBQpMSB3IEKAZDZD',
+  metaAccountId: 'act_230881353234691',
+  scalevKey: 'sk_vnY3L34iKhzMch8R2svcBN8BdgYjqUs44XSA6lwaeKbJFYVgHXxaZC928WOKc66O',
+  scalevBaseUrl: 'https://api.scalev.com',
+  hppPerUnit: 46000,
+  packagingPerOrder: 1000,
+  roasThreshold: 2.0,
+};
+
+/** @returns {typeof DEFAULT_CONFIG} */
+function loadConfig() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('profitDashConfig') || '{}');
+    return { ...DEFAULT_CONFIG, ...stored };
+  } catch {
+    return { ...DEFAULT_CONFIG };
+  }
+}
+
+function saveConfig(patch) {
+  const current = loadConfig();
+  const next = { ...current, ...patch };
+  localStorage.setItem('profitDashConfig', JSON.stringify(next));
+  return next;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+
+const state = {
+  campaigns: [],         // raw campaign objects from Meta
+  orders: [],            // raw order objects from Scalev
+  metrics: null,         // calculated metrics object
+  loading: false,
+  metaError: null,
+  scalevError: null,
+  roasAlertFired: false, // only beep once per threshold breach
+  sortCol: 'spend',
+  sortDir: 'desc',
+  campaignFilter: 'all',
+  charts: {},            // chart instances
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORMATTING UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Format as Indonesian Rupiah */
+function rupiah(n) {
+  if (n == null || isNaN(n)) return '—';
+  return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+}
+
+/** Format as compact IDR for charts */
+function rupiahShort(n) {
+  if (Math.abs(n) >= 1_000_000) return 'Rp ' + (n / 1_000_000).toFixed(1) + 'jt';
+  if (Math.abs(n) >= 1_000) return 'Rp ' + (n / 1_000).toFixed(0) + 'rb';
+  return rupiah(n);
+}
+
+function pct(n, decimals = 1) {
+  if (n == null || isNaN(n)) return '—';
+  return n.toFixed(decimals) + '%';
+}
+
+function formatRoas(n) {
+  if (n == null || isNaN(n)) return '—';
+  return n.toFixed(2) + 'x';
+}
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Return today's date range in UTC accounting for WIB (UTC+7) */
+function wibTodayUTC() {
+  const now = new Date();
+  // WIB midnight = UTC 17:00 previous day
+  const todayWib = new Date(now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }));
+  const since = new Date(todayWib.getTime() - 7 * 60 * 60 * 1000); // 00:00 WIB → UTC
+  const until = new Date(todayWib.getTime() + 17 * 60 * 60 * 1000 - 1000); // 23:59:59 WIB → UTC
+  return {
+    since: since.toISOString().replace('.000Z', 'Z'),
+    until: until.toISOString().replace('.000Z', 'Z'),
+  };
+}
+
+function formatTime(isoString) {
+  if (!isoString) return '—';
+  try {
+    return new Date(isoString).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  } catch { return '—'; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// META ADS API
+// NOTE: Meta Ads API blocks CORS from browsers. In production, route these
+// requests through a backend proxy (e.g. a Vercel/Cloudflare function) or use
+// Meta's JavaScript SDK with the business SDK. The URL below will fail CORS in
+// a plain browser — add your proxy base URL in the config if needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch campaign insights from Meta Ads API.
+ * @param {typeof DEFAULT_CONFIG} cfg
+ * @returns {Promise<Array>}
+ */
+async function fetchMetaAds(cfg) {
+  if (!cfg.metaToken || !cfg.metaAccountId) {
+    throw new Error('Meta Ads credentials not configured');
+  }
+
+  const accountId = cfg.metaAccountId.replace(/^act_/, '');
+  const token = cfg.metaToken;
+
+  // Fetch insights and campaign statuses in parallel
+  // effective_status is NOT a valid insights field — must be fetched from /campaigns
+  const insightsParams = new URLSearchParams({
+    fields: 'campaign_name,campaign_id,spend,impressions,clicks,ctr,cpm,reach,actions,cost_per_action_type',
+    date_preset: 'today',
+    level: 'campaign',
+    access_token: token,
+    limit: 200,
+  });
+  const statusParams = new URLSearchParams({
+    fields: 'id,name,effective_status',
+    access_token: token,
+    limit: 200,
+  });
+
+  const [insightsRes, statusRes] = await Promise.all([
+    fetch(`https://graph.facebook.com/v19.0/act_${accountId}/insights?${insightsParams}`),
+    fetch(`https://graph.facebook.com/v19.0/act_${accountId}/campaigns?${statusParams}`),
+  ]);
+
+  if (!insightsRes.ok) {
+    const err = await insightsRes.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Meta Insights API error ${insightsRes.status}`);
+  }
+  const insightsData = await insightsRes.json();
+  if (insightsData.error) throw new Error(insightsData.error.message);
+
+  // Build a map of campaign_id → effective_status
+  const statusMap = {};
+  if (statusRes.ok) {
+    const sd = await statusRes.json().catch(() => ({}));
+    (sd.data || []).forEach(c => { statusMap[c.id] = c.effective_status; });
+  }
+
+  return (insightsData.data || []).map(c => ({
+    campaign_id: c.campaign_id,
+    campaign_name: c.campaign_name,
+    status: (statusMap[c.campaign_id] || 'UNKNOWN').toUpperCase(),
+    spend: parseFloat(c.spend || 0),
+    impressions: parseInt(c.impressions || 0),
+    clicks: parseInt(c.clicks || 0),
+    ctr: parseFloat(c.ctr || 0),
+    cpm: parseFloat(c.cpm || 0),
+    reach: parseInt(c.reach || 0),
+    purchases: extractAction(c.actions, 'purchase'),
+    cpp: extractAction(c.cost_per_action_type, 'purchase'),
+  }));
+}
+
+function extractAction(actions, type) {
+  if (!Array.isArray(actions)) return 0;
+  const a = actions.find(x => x.action_type === type || x.action_type === 'offsite_conversion.fb_pixel_purchase');
+  return a ? parseFloat(a.value) : 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCALEV API
+// NOTE: Scalev API may block browser CORS. If requests fail with CORS errors,
+// proxy through a backend (e.g. Next.js API route, Cloudflare Worker). Set your
+// proxy base URL in the Scalev Base URL config field.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch today's orders from Scalev API.
+ * @param {typeof DEFAULT_CONFIG} cfg
+ * @returns {Promise<Array>}
+ */
+async function fetchScalev(cfg) {
+  if (!cfg.scalevKey || !cfg.scalevBaseUrl) {
+    throw new Error('Scalev credentials not configured');
+  }
+
+  const base = cfg.scalevBaseUrl.replace(/\/$/, '');
+  // Use WIB (UTC+7) midnight as the day boundary, not UTC midnight
+  const { since, until } = wibTodayUTC();
+  const headers = {
+    'Authorization': `Bearer ${cfg.scalevKey}`,
+    'Accept': 'application/json',
+  };
+
+  const allOrders = [];
+  let cursor = null;
+  let page = 0;
+
+  // Paginate through all results (page_size max 25 per Scalev API)
+  do {
+    const params = new URLSearchParams({
+      page_size: 25,
+      draft_time_since: since,
+      draft_time_until: until,
+      columns: 'net_revenue,shipping_cost,final_variants,total_quantity',
+    });
+    if (cursor) params.set('next_cursor', cursor);
+
+    const res = await fetch(`${base}/v3/orders?${params}`, { headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.message || err?.error || `Scalev API error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const batch = data.data || [];
+    allOrders.push(...batch);
+
+    cursor = data.has_next ? data.next_cursor : null;
+    page++;
+    if (page > 40) break; // safety limit: max 1000 orders
+  } while (cursor);
+
+  return allOrders.map(o => ({
+    order_id: o.order_id || o.id || '—',
+    order_status: o.status || 'unknown',
+    payment_status: o.payment_status || 'unknown',
+    // net_revenue excludes shipping cost (product revenue only)
+    net_revenue: parseFloat(o.net_revenue || 0),
+    quantity: parseInt(o.total_quantity || 1),
+    scalev_fee: parseFloat(o.scalev_fee || 0),
+    payment_fee: parseFloat(o.payment_fee || 0),
+    time: o.pending_time || o.draft_time || o.confirmed_time || null,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFIT CALCULATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Calculate all profit metrics from raw data.
+ * @param {Array} orders
+ * @param {Array} campaigns
+ * @param {typeof DEFAULT_CONFIG} cfg
+ */
+function calculateMetrics(orders, campaigns, cfg) {
+  const net_revenue = orders.reduce((s, o) => s + o.net_revenue, 0);
+  const total_units = orders.reduce((s, o) => s + o.quantity, 0);
+  const total_orders = orders.length;
+
+  const hpp_total = total_units * cfg.hppPerUnit;
+  const packaging_total = total_orders * cfg.packagingPerOrder;
+  const scalev_fee_total = orders.reduce((s, o) => s + o.scalev_fee, 0);
+  const payment_fee_total = orders.reduce((s, o) => s + o.payment_fee, 0);
+  const ad_spend = campaigns.reduce((s, c) => s + c.spend, 0);
+
+  const gross_profit = net_revenue - hpp_total - packaging_total - scalev_fee_total - payment_fee_total;
+  const net_profit = gross_profit - ad_spend;
+  const margin = net_revenue > 0 ? (net_profit / net_revenue) * 100 : 0;
+  const roas = ad_spend > 0 ? net_revenue / ad_spend : 0;
+
+  // quantity distribution for donut chart
+  const qty_dist = {};
+  orders.forEach(o => {
+    const k = `${o.quantity} unit`;
+    qty_dist[k] = (qty_dist[k] || 0) + 1;
+  });
+
+  return {
+    net_revenue,
+    total_units,
+    total_orders,
+    hpp_total,
+    packaging_total,
+    scalev_fee_total,
+    payment_fee_total,
+    ad_spend,
+    gross_profit,
+    net_profit,
+    margin,
+    roas,
+    qty_dist,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER — SUMMARY CARDS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderCards(m, cfg) {
+  const netCard = document.getElementById('card-net');
+  const roasCard = document.getElementById('card-roas');
+
+  animateValue('val-orders', m.total_orders, v => v.toLocaleString('id-ID'));
+  animateValue('val-units', m.total_units, v => v.toLocaleString('id-ID'));
+  animateValue('val-revenue', m.net_revenue, rupiah);
+  animateValue('val-gross', m.gross_profit, rupiah);
+  animateValue('val-net', m.net_profit, rupiah);
+  animateValue('val-spend', m.ad_spend, rupiah);
+  animateValue('val-roas', m.roas, formatRoas);
+  animateValue('val-margin', m.margin, v => pct(v));
+
+  // Net profit coloring
+  netCard.classList.remove('positive', 'negative');
+  netCard.classList.add(m.net_profit >= 0 ? 'positive' : 'negative');
+
+  // ROAS coloring
+  roasCard.classList.remove('positive', 'negative', 'warn');
+  if (m.roas >= cfg.roasThreshold) roasCard.classList.add('positive');
+  else if (m.roas > 0) roasCard.classList.add('negative');
+}
+
+/** Animated count-up effect */
+function animateValue(id, target, formatter) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const start = 0;
+  const duration = 600;
+  const startTime = performance.now();
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = start + (target - start) * eased;
+    el.textContent = formatter(current);
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER — STACKED BAR
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STACK_COLORS = {
+  'Ad Spend': '#e05252',
+  'HPP': '#4a9eff',
+  'Scalev + Fee': '#e0aa3e',
+  'Packaging': '#9b59b6',
+  'Net Profit': '#1D9E75',
+};
+
+function renderStackedBar(m) {
+  const wrap = document.getElementById('stacked-bar-wrap');
+  if (!m || m.net_revenue <= 0) {
+    wrap.innerHTML = '<div class="state-box" style="padding:20px"><span>Tidak ada data revenue</span></div>';
+    return;
+  }
+
+  const segments = [
+    { label: 'Ad Spend', value: m.ad_spend },
+    { label: 'HPP', value: m.hpp_total },
+    { label: 'Scalev + Fee', value: m.scalev_fee_total + m.payment_fee_total },
+    { label: 'Packaging', value: m.packaging_total },
+    { label: 'Net Profit', value: Math.max(m.net_profit, 0) },
+  ];
+
+  const total = segments.reduce((s, seg) => s + Math.max(seg.value, 0), 0) || 1;
+
+  const barHTML = segments.map(seg => {
+    const pctVal = (Math.max(seg.value, 0) / total * 100).toFixed(1);
+    return `<div class="stacked-seg"
+      style="background:${STACK_COLORS[seg.label]};width:${pctVal}%;opacity:0.85"
+      data-label="${seg.label}"
+      data-value="${rupiah(seg.value)}"
+      data-pct="${pctVal}%"
+    ></div>`;
+  }).join('');
+
+  const legendHTML = segments.map(seg => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${STACK_COLORS[seg.label]}"></div>
+      <span>${seg.label} — ${(Math.max(seg.value, 0) / total * 100).toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  wrap.innerHTML = `
+    <div class="stacked-bar">${barHTML}</div>
+    <div class="stacked-legend">${legendHTML}</div>
+  `;
+
+  // Tooltip for bar segments
+  wrap.querySelectorAll('.stacked-seg').forEach(seg => {
+    seg.addEventListener('mousemove', e => showTip(e, `${seg.dataset.label}: ${seg.dataset.value} (${seg.dataset.pct})`));
+    seg.addEventListener('mouseleave', hideTip);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER — CAMPAIGN TABLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderCampaignTable() {
+  const wrap = document.getElementById('campaign-table-wrap');
+  let data = [...state.campaigns];
+
+  if (state.campaignFilter === 'active') data = data.filter(c => c.status === 'ACTIVE');
+  if (state.campaignFilter === 'paused') data = data.filter(c => c.status !== 'ACTIVE');
+
+  // Sorting
+  data.sort((a, b) => {
+    let va = a[state.sortCol] ?? 0;
+    let vb = b[state.sortCol] ?? 0;
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return state.sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return state.sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="state-box"><span>Tidak ada kampanye ditemukan</span></div>';
+    return;
+  }
+
+  const cols = [
+    { key: 'campaign_name', label: 'Kampanye' },
+    { key: 'status', label: 'Status' },
+    { key: 'spend', label: 'Spend' },
+    { key: 'impressions', label: 'Impresi' },
+    { key: 'clicks', label: 'Klik' },
+    { key: 'ctr', label: 'CTR' },
+    { key: 'cpm', label: 'CPM' },
+    { key: 'purchases', label: 'Purchase' },
+    { key: 'cpp', label: 'Cost/Purchase' },
+  ];
+
+  const arrow = dir => dir === 'asc' ? '↑' : '↓';
+
+  const thead = cols.map(c => {
+    const isSorted = state.sortCol === c.key;
+    return `<th class="${isSorted ? 'sorted' : ''}" onclick="sortTable('${c.key}')">
+      ${c.label}<span class="sort-arrow">${isSorted ? arrow(state.sortDir) : '↕'}</span>
+    </th>`;
+  }).join('');
+
+  const tbody = data.map(c => {
+    const statusBadge = c.status === 'ACTIVE'
+      ? '<span class="badge badge-active">ACTIVE</span>'
+      : '<span class="badge badge-paused">PAUSED</span>';
+
+    let cppClass = 'cpp-yellow';
+    if (c.cpp > 0 && c.cpp < 35000) cppClass = 'cpp-green';
+    else if (c.cpp > 50000 || c.cpp === 0) cppClass = 'cpp-red';
+
+    return `<tr>
+      <td title="${c.campaign_name}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${c.campaign_name}</td>
+      <td>${statusBadge}</td>
+      <td>${rupiah(c.spend)}</td>
+      <td>${c.impressions.toLocaleString('id-ID')}</td>
+      <td>${c.clicks.toLocaleString('id-ID')}</td>
+      <td>${c.ctr.toFixed(2)}%</td>
+      <td>${rupiah(c.cpm)}</td>
+      <td>${c.purchases > 0 ? c.purchases : '<span style="color:var(--text-muted)">0</span>'}</td>
+      <td class="${cppClass}">${c.cpp > 0 ? rupiah(c.cpp) : '<span style="color:var(--red)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>${thead}</tr></thead>
+      <tbody>${tbody}</tbody>
+    </table>
+  `;
+}
+
+function sortTable(col) {
+  if (state.sortCol === col) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortCol = col;
+    state.sortDir = 'desc';
+  }
+  renderCampaignTable();
+}
+
+function filterCampaigns(filter, btn) {
+  state.campaignFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCampaignTable();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER — CHARTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { labels: { color: '#888', font: { size: 11 } } },
+    tooltip: {
+      backgroundColor: '#111',
+      borderColor: '#2a2a2a',
+      borderWidth: 1,
+      titleColor: '#e8e8e8',
+      bodyColor: '#aaa',
+    },
+  },
+  scales: {
+    x: { ticks: { color: '#666', font: { size: 10 } }, grid: { color: '#1f1f1f' } },
+    y: { ticks: { color: '#666', font: { size: 10 } }, grid: { color: '#1f1f1f' } },
+  },
+};
+
+function destroyChart(key) {
+  if (state.charts[key]) {
+    state.charts[key].destroy();
+    state.charts[key] = null;
+  }
+}
+
+function renderCharts(m) {
+  const campaigns = state.campaigns;
+  if (!campaigns.length) return;
+
+  // Chart A: CPP per campaign
+  {
+    destroyChart('cpp');
+    const labels = campaigns.map(c => truncate(c.campaign_name, 20));
+    const data = campaigns.map(c => c.cpp || 0);
+    const bgColors = campaigns.map(c => {
+      if (c.purchases === 0) return 'rgba(224,82,82,0.7)';
+      if (c.status === 'ACTIVE') return 'rgba(29,158,117,0.7)';
+      return 'rgba(100,100,100,0.6)';
+    });
+
+    state.charts.cpp = new Chart(document.getElementById('chart-cpp'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Cost per Purchase (Rp)',
+          data,
+          backgroundColor: bgColors,
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        plugins: {
+          ...CHART_DEFAULTS.plugins,
+          tooltip: {
+            ...CHART_DEFAULTS.plugins.tooltip,
+            callbacks: { label: ctx => rupiah(ctx.raw) },
+          },
+        },
+        scales: {
+          ...CHART_DEFAULTS.scales,
+          y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: rupiahShort } },
+        },
+      },
+    });
+  }
+
+  // Chart B: Spent + Purchase mixed
+  {
+    destroyChart('spentpurchase');
+    const labels = campaigns.map(c => truncate(c.campaign_name, 18));
+    state.charts.spentpurchase = new Chart(document.getElementById('chart-spent-purchase'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Spend (Rp)',
+            data: campaigns.map(c => c.spend),
+            backgroundColor: 'rgba(74,158,255,0.6)',
+            borderRadius: 4,
+            yAxisID: 'y',
+          },
+          {
+            type: 'line',
+            label: 'Purchases',
+            data: campaigns.map(c => c.purchases),
+            borderColor: '#1D9E75',
+            backgroundColor: 'rgba(29,158,117,0.15)',
+            pointBackgroundColor: '#1D9E75',
+            tension: 0.3,
+            yAxisID: 'y1',
+          },
+        ],
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: {
+          x: CHART_DEFAULTS.scales.x,
+          y: {
+            ...CHART_DEFAULTS.scales.y,
+            position: 'left',
+            ticks: { color: '#666', font: { size: 10 }, callback: rupiahShort },
+          },
+          y1: {
+            position: 'right',
+            ticks: { color: '#666', font: { size: 10 } },
+            grid: { drawOnChartArea: false },
+          },
+        },
+      },
+    });
+  }
+
+  // Chart C: Qty distribution donut
+  if (m) {
+    destroyChart('qty');
+    const labels = Object.keys(m.qty_dist);
+    const data = Object.values(m.qty_dist);
+    const palette = ['#1D9E75', '#4a9eff', '#e0aa3e', '#9b59b6', '#e05252', '#3498db'];
+    state.charts.qty = new Chart(document.getElementById('chart-qty-donut'), {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: palette.slice(0, labels.length),
+          borderColor: '#1a1a1a',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          ...CHART_DEFAULTS.plugins,
+          tooltip: {
+            ...CHART_DEFAULTS.plugins.tooltip,
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.raw} order (${(ctx.raw / data.reduce((a, b) => a + b, 0) * 100).toFixed(1)}%)`,
+            },
+          },
+        },
+      },
+    });
+  }
+}
+
+function truncate(str, n) {
+  return str.length > n ? str.slice(0, n) + '…' : str;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER — ORDER FEED
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderOrderFeed() {
+  const wrap = document.getElementById('order-feed-wrap');
+  const orders = state.orders;
+
+  if (!orders.length) {
+    wrap.innerHTML = '<div class="state-box"><span>Belum ada order hari ini</span></div>';
+    return;
+  }
+
+  const sorted = [...orders].sort((a, b) => {
+    if (!a.time) return 1;
+    if (!b.time) return -1;
+    return new Date(b.time) - new Date(a.time);
+  });
+
+  wrap.innerHTML = `
+    <div class="order-feed">
+      ${sorted.map(o => `
+        <div class="order-item">
+          <div>
+            <div class="order-id">#${o.order_id}</div>
+          </div>
+          <div>${statusBadge(o.order_status)}</div>
+          <div style="color:var(--text-muted);font-size:.78rem">${o.quantity}x</div>
+          <div class="order-rev">${rupiah(o.net_revenue)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function statusBadge(status) {
+  const s = (status || 'unknown').toLowerCase();
+  const map = {
+    pending: 'badge-pending',
+    confirmed: 'badge-confirmed',
+    cancelled: 'badge-cancelled',
+    cancel: 'badge-cancelled',
+  };
+  return `<span class="badge ${map[s] || 'badge-paused'}">${s}</span>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROAS ALERT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Play a single beep via Web Audio API.
+ */
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.warn('[Dashboard] Web Audio beep failed:', e);
+  }
+}
+
+function checkRoasAlert(roas, threshold) {
+  const alertEl = document.getElementById('roas-alert');
+  if (roas > 0 && roas < threshold) {
+    alertEl.style.display = 'block';
+    alertEl.textContent = `⚠ ROAS di bawah target: ${formatRoas(roas)} (threshold: ${formatRoas(threshold)})`;
+    if (!state.roasAlertFired) {
+      state.roasAlertFired = true;
+      playBeep();
+      sendOsNotification(roas, threshold);
+    }
+  } else {
+    alertEl.style.display = 'none';
+    state.roasAlertFired = false; // reset so next breach fires again
+  }
+}
+
+function sendOsNotification(roas, threshold) {
+  if (Notification.permission === 'granted') {
+    new Notification('⚠ ROAS Alert', {
+      body: `ROAS ${formatRoas(roas)} di bawah target ${formatRoas(threshold)}`,
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📉</text></svg>',
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN DATA REFRESH
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch all data, calculate metrics, and render all dashboard sections.
+ */
+async function refreshData() {
+  if (state.loading) return;
+  state.loading = true;
+  setRefreshLoading(true);
+
+  const cfg = loadConfig();
+  const timestamp = `[${new Date().toLocaleTimeString('id-ID')}]`;
+
+  // Parallel fetch — Meta and Scalev are independent
+  const [metaResult, scalevResult] = await Promise.allSettled([
+    fetchMetaAds(cfg),
+    fetchScalev(cfg),
+  ]);
+
+  // Handle Meta result
+  if (metaResult.status === 'fulfilled') {
+    state.campaigns = metaResult.value;
+    state.metaError = null;
+    console.log(`${timestamp} Meta Ads: ${state.campaigns.length} campaign(s) loaded`);
+  } else {
+    state.metaError = metaResult.reason?.message || 'Unknown error';
+    console.error(`${timestamp} Meta Ads error:`, metaResult.reason);
+    if (!state.campaigns.length) state.campaigns = generateMockCampaigns();
+  }
+
+  // Handle Scalev result
+  if (scalevResult.status === 'fulfilled') {
+    state.orders = scalevResult.value;
+    state.scalevError = null;
+    console.log(`${timestamp} Scalev: ${state.orders.length} order(s) loaded`);
+  } else {
+    state.scalevError = scalevResult.reason?.message || 'Unknown error';
+    console.error(`${timestamp} Scalev error:`, scalevResult.reason);
+    if (!state.orders.length) state.orders = generateMockOrders();
+  }
+
+  // Calculate metrics
+  state.metrics = calculateMetrics(state.orders, state.campaigns, cfg);
+
+  // Render everything
+  renderCards(state.metrics, cfg);
+  renderStackedBar(state.metrics);
+  renderCampaignTable();
+  renderCharts(state.metrics);
+  renderOrderFeed();
+  checkRoasAlert(state.metrics.roas, cfg.roasThreshold);
+  updateApiStatus();
+  updateLastUpdated();
+
+  state.loading = false;
+  setRefreshLoading(false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK DATA (shown when APIs are not configured / fail)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function generateMockCampaigns() {
+  return [
+    { campaign_id: '1', campaign_name: 'Bantal Leher — Retargeting', status: 'ACTIVE', spend: 350000, impressions: 42000, clicks: 820, ctr: 1.95, cpm: 8333, reach: 38000, purchases: 12, cpp: 29167 },
+    { campaign_id: '2', campaign_name: 'Bantal Leher — Lookalike 1%', status: 'ACTIVE', spend: 280000, impressions: 55000, clicks: 650, ctr: 1.18, cpm: 5091, reach: 50000, purchases: 7, cpp: 40000 },
+    { campaign_id: '3', campaign_name: 'Bantal Leher — Interest Health', status: 'PAUSED', spend: 120000, impressions: 18000, clicks: 210, ctr: 1.17, cpm: 6667, reach: 16000, purchases: 3, cpp: 40000 },
+    { campaign_id: '4', campaign_name: 'Bantal Leher — Broad TEST', status: 'ACTIVE', spend: 95000, impressions: 30000, clicks: 290, ctr: 0.97, cpm: 3167, reach: 28000, purchases: 0, cpp: 0 },
+  ];
+}
+
+function generateMockOrders() {
+  const statuses = ['pending', 'confirmed', 'pending', 'confirmed', 'confirmed'];
+  return Array.from({ length: 22 }, (_, i) => ({
+    order_id: `ORD-${1000 + i}`,
+    order_status: statuses[i % statuses.length],
+    payment_status: 'paid',
+    net_revenue: [89000, 178000, 89000, 267000][i % 4],
+    quantity: [1, 2, 1, 3][i % 4],
+    scalev_fee: 2000,
+    payment_fee: 1500,
+    time: new Date(Date.now() - i * 18 * 60000).toISOString(),
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function setRefreshLoading(on) {
+  const btn = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  btn.disabled = on;
+  icon.innerHTML = on ? '<span class="spinner"></span>' : '↺';
+}
+
+function updateLastUpdated() {
+  const el = document.getElementById('last-updated');
+  const now = new Date();
+  el.textContent = `Updated ${now.toLocaleTimeString('id-ID')}`;
+
+  // Start "X min ago" counter
+  clearInterval(window._agoInterval);
+  window._agoInterval = setInterval(() => {
+    const diff = Math.round((Date.now() - now) / 60000);
+    el.textContent = diff < 1 ? 'Updated baru saja' : `Updated ${diff} mnt lalu`;
+  }, 30000);
+}
+
+function updateApiStatus() {
+  const metaEl = document.getElementById('api-status-meta');
+  const scalevEl = document.getElementById('api-status-scalev');
+  const metaErrEl = document.getElementById('meta-error');
+  const scalevErrEl = document.getElementById('scalev-error');
+
+  if (state.metaError) {
+    metaEl.innerHTML = '<span class="error-badge" title="' + state.metaError + '">Meta ✕</span>';
+    metaErrEl.innerHTML = '<span class="error-badge" title="' + state.metaError + '">Error: ' + truncate(state.metaError, 40) + ' (mock data)</span>';
+  } else {
+    metaEl.innerHTML = '';
+    metaErrEl.innerHTML = '';
+  }
+
+  if (state.scalevError) {
+    scalevEl.innerHTML = '<span class="error-badge" title="' + state.scalevError + '">Scalev ✕</span>';
+    scalevErrEl.innerHTML = '<span class="error-badge" title="' + state.scalevError + '">Error: ' + truncate(state.scalevError, 40) + ' (mock data)</span>';
+  } else {
+    scalevEl.innerHTML = '';
+    scalevErrEl.innerHTML = '';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOOLTIP
+// ─────────────────────────────────────────────────────────────────────────────
+
+const tipEl = document.getElementById('tooltip');
+
+function showTip(e, text) {
+  tipEl.textContent = text;
+  tipEl.classList.add('visible');
+  moveTip(e);
+}
+
+function moveTip(e) {
+  tipEl.style.left = (e.clientX + 12) + 'px';
+  tipEl.style.top = (e.clientY - 28) + 'px';
+}
+
+function hideTip() { tipEl.classList.remove('visible'); }
+
+document.addEventListener('mousemove', e => {
+  if (tipEl.classList.contains('visible')) moveTip(e);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SETTINGS PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+
+function openSettings() {
+  const cfg = loadConfig();
+  document.getElementById('cfg-meta-token').value = cfg.metaToken;
+  document.getElementById('cfg-meta-account').value = cfg.metaAccountId;
+  document.getElementById('cfg-scalev-key').value = cfg.scalevKey;
+  document.getElementById('cfg-scalev-url').value = cfg.scalevBaseUrl;
+  document.getElementById('cfg-hpp').value = cfg.hppPerUnit;
+  document.getElementById('cfg-packaging').value = cfg.packagingPerOrder;
+  document.getElementById('cfg-roas-threshold').value = cfg.roasThreshold;
+  document.getElementById('settings-overlay').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+
+function saveSettings() {
+  saveConfig({
+    metaToken: document.getElementById('cfg-meta-token').value.trim(),
+    metaAccountId: document.getElementById('cfg-meta-account').value.trim(),
+    scalevKey: document.getElementById('cfg-scalev-key').value.trim(),
+    scalevBaseUrl: document.getElementById('cfg-scalev-url').value.trim(),
+    hppPerUnit: parseFloat(document.getElementById('cfg-hpp').value) || DEFAULT_CONFIG.hppPerUnit,
+    packagingPerOrder: parseFloat(document.getElementById('cfg-packaging').value) || DEFAULT_CONFIG.packagingPerOrder,
+    roasThreshold: parseFloat(document.getElementById('cfg-roas-threshold').value) || DEFAULT_CONFIG.roasThreshold,
+  });
+  closeSettings();
+  refreshData();
+}
+
+// Close overlay on backdrop click
+document.getElementById('settings-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Export dashboard as PNG using html2canvas.
+ */
+async function exportPng() {
+  try {
+    const canvas = await html2canvas(document.getElementById('dashboard'), {
+      backgroundColor: '#0f0f0f',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    const link = document.createElement('a');
+    link.download = `profit-dashboard-${todayString()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (e) {
+    console.error('[Dashboard] PNG export failed:', e);
+    alert('Export PNG gagal: ' + e.message);
+  }
+}
+
+/**
+ * Export dashboard as PDF (A4 landscape) using jsPDF + html2canvas.
+ */
+async function exportPdf() {
+  try {
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(document.getElementById('dashboard'), {
+      backgroundColor: '#0f0f0f',
+      scale: 1.5,
+      useCORS: true,
+      logging: false,
+    });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / canvas.height;
+    const imgH = pageW / ratio;
+
+    let y = 0;
+    while (y < imgH) {
+      if (y > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, -y, pageW, imgH);
+      y += pageH;
+    }
+
+    pdf.save(`profit-dashboard-${todayString()}.pdf`);
+  } catch (e) {
+    console.error('[Dashboard] PDF export failed:', e);
+    alert('Export PDF gagal: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO-REFRESH (every 5 minutes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
+let autoRefreshTimer = null;
+
+function startAutoRefresh() {
+  clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => {
+    console.log(`[Dashboard] Auto-refresh triggered at ${new Date().toLocaleTimeString('id-ID')}`);
+    refreshData();
+  }, AUTO_REFRESH_MS);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BROWSER NOTIFICATION PERMISSION
+// ─────────────────────────────────────────────────────────────────────────────
+
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(p => {
+      console.log('[Dashboard] Notification permission:', p);
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+(function init() {
+  requestNotificationPermission();
+  startAutoRefresh();
+  refreshData();
+})();
+</script>
+</body>
+</html>

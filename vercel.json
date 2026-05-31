@@ -1,6 +1,10 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/bantal-mobil-fixed.html" },
-    { "source": "/jarvis", "destination": "/jarvis.html" }
+    { "source": "/jarvis", "destination": "/jarvis.html" },
+    { "source": "/dastercantik", "destination": "/dastercantik.html" },
+    { "source": "/OneSetCantik", "destination": "/OneSetCantik.html" },
+    { "source": "/eljida-preview", "destination": "/eljida-preview.html" },
+    { "source": "/monitorprofit", "destination": "/profit-dashboard.html" }
   ]
 }
