@@ -228,14 +228,14 @@
   @media (min-width: 1200px) { .metric-grid { grid-template-columns: repeat(4, 1fr); } }
 
   .metric-card {
-    background: var(--surface);
+    background: transparent;
     border-radius: var(--radius-xl);
     padding: 18px 18px 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-    transition: transform .22s var(--spring), box-shadow .22s var(--ease-out);
+    box-shadow: none;
+    transition: transform .22s var(--spring);
     cursor: default; position: relative; overflow: hidden;
   }
-  .metric-card:hover { transform: scale(1.022); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
+  .metric-card:hover { transform: scale(1.022); }
   .metric-card:active { transform: scale(0.98); }
 
   /* colored top fill area */
@@ -288,10 +288,10 @@
   @media (max-width: 699px) { .secondary-row { grid-template-columns: repeat(2, 1fr); } }
 
   .sec-card {
-    background: var(--surface);
+    background: transparent;
     border-radius: var(--radius-lg);
     padding: 14px 16px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    box-shadow: none;
     display: flex; flex-direction: column; gap: 3px;
     transition: transform .2s var(--spring);
   }
@@ -317,9 +317,9 @@
 
   /* ─── IOS CARD ─── */
   .ios-card {
-    background: var(--surface);
+    background: transparent;
     border-radius: var(--radius-xl);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: none;
     overflow: hidden;
   }
   .ios-card + .ios-card { margin-top: 12px; }
@@ -328,6 +328,7 @@
     padding: 16px 18px 12px;
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; flex-wrap: wrap;
+    border-bottom: 0.5px solid var(--separator);
   }
   .ios-card-title {
     font-size: 0.9rem; font-weight: 800;
