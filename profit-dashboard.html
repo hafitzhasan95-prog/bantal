@@ -1096,6 +1096,11 @@
         <input type="date" id="cfg-ad-start-date" placeholder="YYYY-MM-DD">
         <small style="color:var(--label3);font-size:0.72rem;margin-top:4px;display:block">Chart profit selalu tampil dari tanggal ini</small>
       </div>
+      <div class="form-group">
+        <label>Estimasi Return (%)</label>
+        <input type="number" id="cfg-return-rate" placeholder="20" min="0" max="100" step="1">
+        <small style="color:var(--label3);font-size:0.72rem;margin-top:4px;display:block">% order yang diestimasi return (dikurangi dari profit)</small>
+      </div>
       <div class="form-divider">Alert</div>
       <div class="form-group">
         <label>ROAS Minimum Alert</label>
@@ -1350,6 +1355,13 @@
               </div>
               <span class="stat-val" id="stat-fee">—</span>
             </div>
+            <div class="stat-row">
+              <div class="stat-row-left">
+                <div class="stat-color-bar" style="background:#FF6B35"></div>
+                <span class="stat-label" id="stat-return-label">Est. Return (20%)</span>
+              </div>
+              <span class="stat-val" id="stat-return">—</span>
+            </div>
             <div class="stat-row" style="background:rgba(52,199,89,0.05)">
               <div class="stat-row-left">
                 <div class="stat-color-bar" style="background:var(--green)"></div>
@@ -1396,6 +1408,7 @@ const DEFAULT_CONFIG = {
   hppPerUnit: 46000,
   packagingPerOrder: 1000,
   roasThreshold: 2.0,
+  returnRate: 0.20,  // estimasi % order yang return (default 20%)
   adStartDate: '',   // YYYY-MM-DD — tanggal pertama iklan produk one set
 };
 
@@ -1617,8 +1630,10 @@ function buildDailyData(orders, metaDailySpend, cfg, since, until) {
     const hpp=units*cfg.hppPerUnit, pkg=cnt*cfg.packagingPerOrder;
     const sf=dayOrders.reduce((s,o)=>s+o.scalev_fee+o.payment_fee,0);
     const spend=metaDailySpend[date]||0;
-    const gross=revenue-hpp-pkg-sf, net=gross-spend;
-    return {date,revenue,spend,gross,net,orders:cnt,units};
+    const rr=cfg.returnRate||0.20;
+    const ret=hpp*rr;
+    const gross=revenue-hpp-pkg-sf-ret, net=gross-spend;
+    return {date,revenue,spend,gross,net,orders:cnt,units,ret};
   });
 }
 
@@ -1631,12 +1646,14 @@ function calculateMetrics(orders, campaigns, cfg) {
   const hpp=tu*cfg.hppPerUnit, pkg=to*cfg.packagingPerOrder;
   const sf=orders.reduce((s,o)=>s+o.scalev_fee,0), pf=orders.reduce((s,o)=>s+o.payment_fee,0);
   const spend=campaigns.reduce((s,c)=>s+c.spend,0);
-  const gp=rv-hpp-pkg-sf-pf, np=gp-spend;
+  const rr=cfg.returnRate||0.20;
+  const ret=hpp*rr;   // biaya estimasi return = returnRate × HPP
+  const gp=rv-hpp-pkg-sf-pf-ret, np=gp-spend;
   const qty_dist={};
   orders.forEach(o=>{const k=`${o.quantity} unit`;qty_dist[k]=(qty_dist[k]||0)+1;});
   return { net_revenue:rv, total_units:tu, total_orders:to, hpp_total:hpp, packaging_total:pkg,
-    scalev_fee_total:sf, payment_fee_total:pf, ad_spend:spend, gross_profit:gp,
-    net_profit:np, margin:rv>0?(np/rv)*100:0, roas:spend>0?rv/spend:0, qty_dist };
+    scalev_fee_total:sf, payment_fee_total:pf, ad_spend:spend, return_cost:ret, return_rate:rr,
+    gross_profit:gp, net_profit:np, margin:rv>0?(np/rv)*100:0, roas:spend>0?rv/spend:0, qty_dist };
 }
 
 // ─── RENDER CARDS ─────────────────────────────────────────────────────────────
@@ -1668,6 +1685,8 @@ function renderCards(m, cfg) {
   set('stat-spend2',rupiah(m.ad_spend));
   set('stat-pkg',rupiah(m.packaging_total));
   set('stat-fee',rupiah(m.scalev_fee_total+m.payment_fee_total));
+  set('stat-return',rupiah(m.return_cost));
+  set('stat-return-label',`Est. Return (${Math.round((m.return_rate||0.20)*100)}%)`);
   set('stat-gross2',rupiah(m.gross_profit));
 
   const dr=getDateRange();
@@ -1698,7 +1717,9 @@ function renderStackedBar(m) {
   const segs=[
     {l:'Ad Spend',v:m.ad_spend},{l:'HPP',v:m.hpp_total},
     {l:'Scalev+Fee',v:m.scalev_fee_total+m.payment_fee_total},
-    {l:'Packaging',v:m.packaging_total},{l:'Net Profit',v:Math.max(m.net_profit,0)},
+    {l:'Packaging',v:m.packaging_total},
+    {l:`Est.Return`,v:m.return_cost||0},
+    {l:'Net Profit',v:Math.max(m.net_profit,0)},
   ];
   const tot=segs.reduce((s,x)=>s+Math.max(x.v,0),0)||1;
   const bar=segs.map(x=>{const p=(Math.max(x.v,0)/tot*100).toFixed(1);return `<div class="bd-seg" style="background:${SEG_COLORS[x.l]};width:${p}%" data-l="${x.l}" data-v="${rupiah(x.v)}" data-p="${p}%"></div>`;}).join('');
@@ -2398,6 +2419,7 @@ function openSettings(){
   const cfg=loadConfig();
   const map={['cfg-meta-token']:'metaToken',['cfg-meta-account']:'metaAccountId',['cfg-scalev-key']:'scalevKey',['cfg-scalev-url']:'scalevBaseUrl',['cfg-hpp']:'hppPerUnit',['cfg-packaging']:'packagingPerOrder',['cfg-roas-threshold']:'roasThreshold',['cfg-ad-start-date']:'adStartDate'};
   Object.keys(map).forEach(id=>{const e=document.getElementById(id);if(e)e.value=cfg[map[id]]||'';});
+  const rrEl=document.getElementById('cfg-return-rate'); if(rrEl) rrEl.value=Math.round((cfg.returnRate||0.20)*100);
   document.getElementById('settings-overlay').classList.add('open');
 }
 function closeSettings(){document.getElementById('settings-overlay').classList.remove('open');}
@@ -2412,6 +2434,7 @@ function saveSettings(){
     packagingPerOrder:parseFloat(document.getElementById('cfg-packaging').value)||DEFAULT_CONFIG.packagingPerOrder,
     roasThreshold:parseFloat(document.getElementById('cfg-roas-threshold').value)||DEFAULT_CONFIG.roasThreshold,
     adStartDate: /^\d{4}-\d{2}-\d{2}$/.test(adStart) ? adStart : '',
+    returnRate: Math.min(100,Math.max(0,parseFloat(document.getElementById('cfg-return-rate').value)||20))/100,
   });
   closeSettings();refreshData();
 }
