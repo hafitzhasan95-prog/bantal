@@ -623,6 +623,40 @@
   .dr-year-nav button:hover { background: var(--fill2); }
   .dr-year-nav .yr-label { font-size: 0.9rem; font-weight: 700; color: var(--label); min-width: 48px; text-align: center; }
 
+  /* ─── MONITOR WAKTU SECTION ─── */
+  .monitor-range-bar {
+    display: flex; gap: 6px;
+    padding: 8px 16px 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .monitor-range-bar::-webkit-scrollbar { height: 0; }
+
+  .monitor-picker {
+    padding: 7px 16px 9px;
+    border-bottom: 0.5px solid var(--separator);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .monitor-picker input[type="month"] {
+    background: var(--fill); border: none;
+    border-radius: 10px; padding: 5px 12px; font-size: 0.82rem;
+    font-family: inherit; color: var(--label); cursor: pointer; outline: none;
+  }
+
+  .monitor-summary-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 10px; padding: 4px 0 6px;
+  }
+  .mon-sum-item { display: flex; flex-direction: column; gap: 3px; }
+  .mon-sum-label {
+    font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em; color: var(--label3);
+  }
+  .mon-sum-val {
+    font-size: 1.15rem; font-weight: 900;
+    letter-spacing: -0.04em; color: var(--label);
+  }
+
   /* ─── MOBILE RESPONSIVE ─── */
 
   /* fast tap — no 300ms delay */
@@ -660,10 +694,15 @@
     .hide-mobile { display: none !important; }
     .tip { display: none; }
 
-    /* ── Date range bar ── */
-    .date-range-bar { padding: 6px 12px 8px; gap: 5px; }
-    .dr-btn { padding: 4px 11px; font-size: 0.70rem; }
-    .dr-picker { padding: 6px 12px 8px; }
+    /* ── Monitor Waktu section on mobile ── */
+    .monitor-range-bar { padding: 6px 12px 8px; gap: 4px; }
+    .dr-btn { padding: 4px 10px; font-size: 0.68rem; }
+    .monitor-picker { padding: 5px 12px 7px; }
+    .monitor-summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 2px 0 4px; }
+    .mon-sum-val { font-size: 1.0rem; }
+    .mon-sum-label { font-size: 0.57rem; }
+    /* monitor trend chart: fixed height on mobile */
+    #monitor-trend .chart-wrap { height: 170px; overflow: hidden; }
 
     /* ── Navbar ── */
     .navbar { padding: 0 12px; gap: 6px; height: 48px; }
@@ -943,34 +982,82 @@
   </div>
 </div>
 
-<!-- Date range bar -->
-<div class="date-range-bar" id="date-range-bar">
-  <button class="dr-btn active" onclick="setDateRange('today',this)">Hari Ini</button>
-  <button class="dr-btn" onclick="setDateRange('yesterday',this)">Kemarin</button>
-  <button class="dr-btn" onclick="setDateRange('last7',this)">7 Hari</button>
-  <button class="dr-btn" onclick="setDateRange('thismonth',this)">Bulan Ini</button>
-  <button class="dr-btn" onclick="setDateRange('monthly',this)">Bulanan ▾</button>
-  <button class="dr-btn" onclick="setDateRange('yearly',this)">Tahunan ▾</button>
-</div>
-<div class="dr-picker" id="dr-picker" style="display:none">
-  <input type="month" id="dr-month-input" style="display:none" oninput="onMonthPick(this.value)">
-  <div class="dr-year-nav" id="dr-year-nav" style="display:none">
-    <button onclick="changeYear(-1)">‹</button>
-    <span class="yr-label" id="dr-year-val">2025</span>
-    <button onclick="changeYear(1)">›</button>
-  </div>
-</div>
-
 <!-- Main -->
 <main class="main" id="dashboard">
 
   <div id="roas-alert"></div>
 
   <!-- Page header -->
-  <div class="page-header anim-1">
+  <div class="page-header anim-1" style="margin-bottom:10px">
     <div class="page-header-left">
       <div class="page-big-title" id="page-title">Dashboard Hari Ini</div>
-      <div class="page-date-chip" id="page-date-chip">📅 —</div>
+    </div>
+  </div>
+
+  <!-- ── Monitor Waktu ── -->
+  <div class="ios-card anim-1" style="margin-bottom:14px">
+    <div class="ios-card-header" style="padding:12px 16px 10px">
+      <div class="ios-card-title">
+        <div class="ios-card-title-icon" style="background:rgba(0,122,255,0.1)">📊</div>
+        Monitor Waktu
+      </div>
+      <div class="page-date-chip" id="page-date-chip" style="margin-top:0">📅 —</div>
+    </div>
+
+    <!-- Range pills -->
+    <div class="monitor-range-bar">
+      <button class="dr-btn active" onclick="setDateRange('today',this)">Hari Ini</button>
+      <button class="dr-btn" onclick="setDateRange('yesterday',this)">Kemarin</button>
+      <button class="dr-btn" onclick="setDateRange('last7',this)">7 Hari</button>
+      <button class="dr-btn" onclick="setDateRange('thismonth',this)">Bulan Ini</button>
+      <button class="dr-btn" onclick="setDateRange('monthly',this)">Bulanan ▾</button>
+      <button class="dr-btn" onclick="setDateRange('yearly',this)">Tahunan ▾</button>
+    </div>
+
+    <!-- Picker (month / year nav) -->
+    <div class="monitor-picker" id="dr-picker" style="display:none">
+      <input type="month" id="dr-month-input" style="display:none" oninput="onMonthPick(this.value)">
+      <div class="dr-year-nav" id="dr-year-nav" style="display:none">
+        <button onclick="changeYear(-1)">‹</button>
+        <span class="yr-label" id="dr-year-val">2026</span>
+        <button onclick="changeYear(1)">›</button>
+      </div>
+    </div>
+
+    <!-- Chart / Summary body -->
+    <div class="ios-card-body" style="padding-top:12px">
+
+      <!-- Single-day summary (Hari Ini / Kemarin) -->
+      <div id="monitor-single-day" style="display:none">
+        <div class="monitor-summary-grid">
+          <div class="mon-sum-item">
+            <div class="mon-sum-label">Net Revenue</div>
+            <div class="mon-sum-val" style="color:var(--blue)" id="mon-revenue">—</div>
+          </div>
+          <div class="mon-sum-item">
+            <div class="mon-sum-label">Net Profit</div>
+            <div class="mon-sum-val" id="mon-profit">—</div>
+          </div>
+          <div class="mon-sum-item">
+            <div class="mon-sum-label">Ad Spend</div>
+            <div class="mon-sum-val" id="mon-spend">—</div>
+          </div>
+          <div class="mon-sum-item">
+            <div class="mon-sum-label">ROAS</div>
+            <div class="mon-sum-val" style="color:var(--orange)" id="mon-roas">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multi-day trend chart -->
+      <div id="monitor-trend" style="display:none">
+        <div class="chart-wrap" style="height:180px"><canvas id="chart-daily-profit"></canvas></div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="monitor-loading" class="state-box" style="padding:12px">
+        <span class="spinner"></span>
+      </div>
     </div>
   </div>
 
@@ -1041,19 +1128,6 @@
           <div id="stacked-bar-wrap">
             <div class="state-box" style="padding:14px"><span class="spinner"></span></div>
           </div>
-        </div>
-      </div>
-
-      <!-- Daily Profit Chart — multi-day only -->
-      <div class="ios-card" id="daily-profit-section" style="margin-bottom:12px;display:none">
-        <div class="ios-card-header">
-          <div class="ios-card-title">
-            <div class="ios-card-title-icon" style="background:rgba(52,199,89,0.1)">📈</div>
-            Profit Harian
-          </div>
-        </div>
-        <div class="ios-card-body">
-          <div class="chart-wrap"><canvas id="chart-daily-profit"></canvas></div>
         </div>
       </div>
 
@@ -1547,68 +1621,126 @@ function renderCharts(m) {
 
 function trunc(s,n){return s.length>n?s.slice(0,n)+'…':s;}
 
-// ─── DAILY PROFIT CHART ───────────────────────────────────────────────────────
+// ─── MONITOR WAKTU SECTION ────────────────────────────────────────────────────
 
-function renderDailyProfitChart() {
-  const section=document.getElementById('daily-profit-section');
-  const dr=getDateRange();
-  const data=state.dailyData;
-  if(!data.length||!dr.multi){if(section)section.style.display='none'; dChart('dailyprofit'); return;}
-  if(section) section.style.display='';
+function renderMonitorSection() {
+  const loading  = document.getElementById('monitor-loading');
+  const singleEl = document.getElementById('monitor-single-day');
+  const trendEl  = document.getElementById('monitor-trend');
+  const dr       = getDateRange();
+  const data     = state.dailyData;
 
-  const mob=window.innerWidth<=699;
-  const barOpts=mob?{maintainAspectRatio:false}:{maintainAspectRatio:true,aspectRatio:2.2};
-  const maxTicks=mob?7:20;
+  if (loading)  loading.style.display  = 'none';
 
-  // Label format based on range
-  const labelFmt=date=>{
-    const d=new Date(date+'T12:00:00Z');
-    if(state.dateRange==='yearly') return d.toLocaleDateString('id-ID',{month:'short'});
-    if(state.dateRange==='thismonth'||state.dateRange==='monthly') return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
-    return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  /* ── Single-day: Hari Ini / Kemarin ── */
+  if (!dr.multi) {
+    if (singleEl) singleEl.style.display = '';
+    if (trendEl)  trendEl.style.display  = 'none';
+    dChart('dailyprofit');
+    if (state.metrics) {
+      const m = state.metrics;
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      set('mon-revenue', rupiahShort(m.net_revenue));
+      const pe = document.getElementById('mon-profit');
+      if (pe) { pe.textContent = rupiahShort(m.net_profit); pe.style.color = m.net_profit >= 0 ? 'var(--green)' : 'var(--red)'; }
+      set('mon-spend', rupiahShort(m.ad_spend));
+      set('mon-roas', formatRoas(m.roas));
+    }
+    return;
+  }
+
+  /* ── Multi-day: trend chart ── */
+  if (singleEl) singleEl.style.display = 'none';
+  if (trendEl)  trendEl.style.display  = '';
+
+  if (!data.length) {
+    dChart('dailyprofit');
+    if (trendEl) trendEl.innerHTML = '<div class="state-box"><span>Tidak ada data</span></div>';
+    return;
+  }
+
+  /* make sure chart-wrap canvas is still inside if we re-render */
+  if (trendEl && !document.getElementById('chart-daily-profit')) {
+    trendEl.innerHTML = '<div class="chart-wrap" style="height:180px"><canvas id="chart-daily-profit"></canvas></div>';
+  }
+
+  const mob = window.innerWidth <= 699;
+
+  /* Label per row */
+  const labelFmt = date => {
+    const d = new Date(date + 'T12:00:00Z');
+    if (state.dateRange === 'yearly')   return d.toLocaleDateString('id-ID', {month:'short'});
+    return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
   };
 
-  // For yearly, group by month
+  /* For yearly: group by month */
   let labels, profitData, revenueData, spendData;
-  if(state.dateRange==='yearly') {
-    const byMonth={};
-    data.forEach(d=>{
-      const ym=d.date.slice(0,7);
-      if(!byMonth[ym]) byMonth[ym]={revenue:0,spend:0,gross:0,net:0,orders:0};
-      byMonth[ym].revenue+=d.revenue; byMonth[ym].spend+=d.spend;
-      byMonth[ym].gross+=d.gross; byMonth[ym].net+=d.net; byMonth[ym].orders+=d.orders;
+  if (state.dateRange === 'yearly') {
+    const byMonth = {};
+    data.forEach(d => {
+      const ym = d.date.slice(0,7);
+      if (!byMonth[ym]) byMonth[ym] = {revenue:0,spend:0,gross:0,net:0};
+      byMonth[ym].revenue += d.revenue; byMonth[ym].spend  += d.spend;
+      byMonth[ym].gross   += d.gross;   byMonth[ym].net    += d.net;
     });
-    const months=Object.keys(byMonth).sort();
-    labels=months.map(ym=>new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
-    profitData=months.map(ym=>byMonth[ym].net);
-    revenueData=months.map(ym=>byMonth[ym].revenue);
-    spendData=months.map(ym=>byMonth[ym].spend);
+    const months = Object.keys(byMonth).sort();
+    labels      = months.map(ym => new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
+    profitData  = months.map(ym => byMonth[ym].net);
+    revenueData = months.map(ym => byMonth[ym].revenue);
+    spendData   = months.map(ym => byMonth[ym].spend);
   } else {
-    labels=data.map(d=>labelFmt(d.date));
-    profitData=data.map(d=>d.net);
-    revenueData=data.map(d=>d.revenue);
-    spendData=data.map(d=>d.spend);
+    labels      = data.map(d => labelFmt(d.date));
+    profitData  = data.map(d => d.net);
+    revenueData = data.map(d => d.revenue);
+    spendData   = data.map(d => d.spend);
   }
 
   dChart('dailyprofit');
-  state.charts.dailyprofit=new Chart(document.getElementById('chart-daily-profit'),{
-    type:'bar',
-    data:{labels,datasets:[
-      {type:'bar',label:'Net Profit',data:profitData,backgroundColor:profitData.map(v=>v>=0?'rgba(52,199,89,0.65)':'rgba(255,59,48,0.55)'),borderRadius:5,yAxisID:'y'},
-      {type:'line',label:'Revenue',data:revenueData,borderColor:'#007AFF',backgroundColor:'rgba(0,122,255,0.05)',pointBackgroundColor:'#007AFF',pointRadius:mob?2:3,tension:0.3,yAxisID:'y',fill:true},
-      {type:'line',label:'Ad Spend',data:spendData,borderColor:'#FF9500',backgroundColor:'transparent',pointBackgroundColor:'#FF9500',pointRadius:mob?2:3,tension:0.3,borderDash:[4,3],yAxisID:'y'},
-    ]},
-    options:{...CD,...barOpts,
-      plugins:{...CD.plugins,
-        tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${rupiahShort(ctx.raw)}`}},
+  const canvas = document.getElementById('chart-daily-profit');
+  if (!canvas) return;
+
+  state.charts.dailyprofit = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type:'bar', label:'Net Profit', data:profitData,
+          backgroundColor: profitData.map(v => v >= 0 ? 'rgba(52,199,89,0.70)' : 'rgba(255,59,48,0.60)'),
+          borderRadius:5, yAxisID:'y',
+        },
+        {
+          type:'line', label:'Revenue', data:revenueData,
+          borderColor:'#007AFF', backgroundColor:'rgba(0,122,255,0.06)',
+          pointBackgroundColor:'#007AFF', pointRadius:mob?2:3,
+          tension:0.35, yAxisID:'y', fill:true,
+        },
+        {
+          type:'line', label:'Ad Spend', data:spendData,
+          borderColor:'#FF9500', backgroundColor:'transparent',
+          pointBackgroundColor:'#FF9500', pointRadius:mob?2:3,
+          tension:0.35, borderDash:[4,3], yAxisID:'y',
+        },
+      ],
+    },
+    options: {
+      ...CD,
+      maintainAspectRatio: false,
+      plugins: {
+        ...CD.plugins,
+        legend: { labels: { color:'rgba(60,60,67,0.6)', font:{size:mob?9:11,weight:'500'}, boxWidth:10, padding:12 } },
+        tooltip: { ...CD.plugins.tooltip, callbacks: { label: ctx => `${ctx.dataset.label}: ${rupiahShort(ctx.raw)}` } },
       },
-      scales:{
-        x:{...CD.scales.x,ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?8:10},maxRotation:mob?45:0,maxTicksLimit:maxTicks}},
-        y:{...CD.scales.y,ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?9:10},callback:rupiahShort}},
+      scales: {
+        x: { ...CD.scales.x, ticks: { color:'rgba(60,60,67,0.4)', font:{size:mob?8:10}, maxRotation:mob?40:0, maxTicksLimit:mob?8:20 } },
+        y: { ...CD.scales.y, ticks: { color:'rgba(60,60,67,0.4)', font:{size:mob?9:10}, callback:rupiahShort } },
       },
     },
   });
 }
+
+/* kept for backward compat — just calls new function */
+function renderDailyProfitChart() { renderMonitorSection(); }
 
 // ─── ORDER FEED ───────────────────────────────────────────────────────────────
 
@@ -1649,6 +1781,13 @@ function checkRoasAlert(roas,thr){
 async function refreshData(){
   if(state.loading){state._pendingRefresh=true;return;}
   state.loading=true; state._pendingRefresh=false; setLoading(true);
+  // show monitor spinner while loading
+  const mld=document.getElementById('monitor-loading');
+  const msd=document.getElementById('monitor-single-day');
+  const mtd=document.getElementById('monitor-trend');
+  if(mld){mld.style.display='';}
+  if(msd){msd.style.display='none';}
+  if(mtd){mtd.style.display='none';}
   const cfg=loadConfig();
   const dr=getDateRange();
   const [mr,sr,dr2]=await Promise.allSettled([
