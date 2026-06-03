@@ -434,6 +434,8 @@
   .cpp-orange { color: #8A4800; font-weight: 700; }
 
   /* ─── CHARTS ─── */
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap canvas { display: block; width: 100% !important; }
   canvas { max-height: 220px; }
 
   /* ─── SIDEBAR STAT LIST ─── */
@@ -586,16 +588,16 @@
 
   /* safe area support (notch / home indicator) */
   .navbar {
-    padding-left: max(20px, env(safe-area-inset-left));
-    padding-right: max(20px, env(safe-area-inset-right));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
   }
   .tab-bar {
-    padding-left: max(16px, env(safe-area-inset-left));
-    padding-right: max(16px, env(safe-area-inset-right));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
   }
   .main {
-    padding-left: max(16px, env(safe-area-inset-left));
-    padding-right: max(16px, env(safe-area-inset-right));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
   .settings-panel {
@@ -614,67 +616,152 @@
 
   @media (max-width: 699px) {
     .hide-mobile { display: none !important; }
+    .tip { display: none; }
 
-    /* navbar compact */
-    .navbar { padding: 0 16px; gap: 8px; height: 50px; }
-    .navbar-title { font-size: 0.88rem; }
+    /* ── Navbar ── */
+    .navbar { padding: 0 12px; gap: 6px; height: 48px; }
+    .navbar-logo { font-size: 1.1rem; }
+    .navbar-title { font-size: 0.82rem; }
     .navbar-live { display: none; }
-    #refresh-btn { padding: 6px 12px; font-size: 0.75rem; }
+    #refresh-btn { padding: 5px 10px; font-size: 0.70rem; gap: 4px; }
 
-    /* tab bar */
-    .tab-bar { padding: 8px 16px 0; }
-    .tab-btn { padding: 5px 12px; font-size: 0.72rem; }
+    /* ── Tab bar ── */
+    .tab-bar { padding: 5px 12px 0; }
+    .tab-btn { padding: 5px 10px; font-size: 0.68rem; }
 
-    /* main */
-    .main { padding: 12px 14px calc(80px + env(safe-area-inset-bottom)); }
+    /* ── Main container ── */
+    .main { padding: 10px 12px calc(80px + env(safe-area-inset-bottom)); }
+    .page-big-title { font-size: 1.2rem; letter-spacing: -0.03em; }
+    .page-header { margin-bottom: 10px; }
+    .page-date-chip { font-size: 0.65rem; padding: 4px 10px; }
 
-    /* page title */
-    .page-big-title { font-size: 1.35rem; }
-    .page-header { margin-bottom: 14px; }
-
-    /* metric cards */
-    .metric-grid { gap: 8px; margin-bottom: 8px; }
-    .metric-card { padding: 14px 14px 12px; }
-    .mc-value { font-size: 1.15rem; }
-    .mc-icon { font-size: 0.95rem; margin-bottom: 8px; }
+    /* ── Metric cards: HORIZONTAL layout ──
+       icon on left, label+value stacked on right  */
+    .metric-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .metric-card {
+      padding: 11px 12px;
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      grid-template-rows: auto auto;
+      column-gap: 8px;
+      align-items: center;
+    }
+    .metric-card::before {
+      height: 100%;
+      border-radius: var(--radius-xl);
+    }
+    .mc-icon {
+      font-size: 1.4rem;
+      grid-column: 1;
+      grid-row: 1 / 3;
+      align-self: center;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mc-label {
+      grid-column: 2;
+      grid-row: 1;
+      font-size: 0.56rem;
+      margin-bottom: 2px;
+    }
+    .mc-value {
+      grid-column: 2;
+      grid-row: 2;
+      font-size: 0.97rem;
+      margin-bottom: 0;
+    }
     .mc-sub { display: none; }
 
-    /* secondary row */
-    .secondary-row { gap: 8px; margin-bottom: 14px; }
-    .sec-card { padding: 11px 12px; }
-    .sec-value { font-size: 0.95rem; }
+    /* ── Secondary row: 2×2 compact ── */
+    .secondary-row {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .sec-card { padding: 9px 11px; gap: 2px; }
+    .sec-label { font-size: 0.56rem; }
+    .sec-value { font-size: 0.88rem; }
 
-    /* ios-card header stacks on very small */
-    .ios-card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .ios-card-body { padding: 0 14px 14px; }
+    /* ── Body: single column, no extra gap ── */
+    .body-layout { grid-template-columns: 1fr; gap: 0; }
+    /* prevent grid children from overflowing container */
+    .body-layout > * { min-width: 0; }
+    .body-layout > * > .ios-card { min-width: 0; }
 
-    /* breakdown legend wraps tighter */
-    .bd-legend { gap: 8px; }
-    .bd-item { font-size: 0.68rem; }
+    /* ── iOS cards: tighter ── */
+    .ios-card + .ios-card { margin-top: 8px; }
+    .ios-card-header {
+      padding: 10px 14px 9px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ios-card-body { padding: 0 12px 12px; }
+    .ios-card-body.no-pad { padding: 0; }
+    .ios-card-title { font-size: 0.80rem; gap: 6px; }
+    .ios-card-title-icon { width: 20px; height: 20px; border-radius: 6px; font-size: 0.68rem; }
 
-    /* table font */
-    table { font-size: 0.75rem; }
-    th, td { padding: 9px 10px; }
+    /* ── Charts: fixed height containers on mobile ── */
+    .chart-wrap { height: 160px; overflow: hidden; }
+    /* donut uses its own aspectRatio so no fixed height needed */
+    .chart-wrap-donut { height: auto; overflow: visible; max-height: 200px; }
+    .ios-card-body { overflow: hidden; }
 
-    /* settings sheet full width */
+    /* ── Cost Breakdown ── */
+    .breakdown-bar { height: 18px; border-radius: 9px; }
+    .bd-legend { gap: 5px 10px; margin-top: 8px; overflow: hidden; }
+    .bd-item { font-size: 0.62rem; white-space: nowrap; }
+
+    /* ── Campaign filter chips ── */
+    .filter-row { gap: 4px; }
+    .sf-chip { padding: 4px 9px; font-size: 0.65rem; }
+
+    /* ── Campaign table ── */
+    table { font-size: 0.70rem; }
+    th { padding: 7px 10px; font-size: 0.60rem; }
+    td { padding: 8px 10px; }
+
+    /* ── Sidebar stat list ── */
+    .stat-row { padding: 9px 14px; }
+    .stat-label { font-size: 0.70rem; }
+    .stat-val { font-size: 0.73rem; }
+    .stat-color-bar { height: 18px; }
+
+    /* ── Order feed ── */
+    .order-feed { max-height: 220px; }
+    .order-row { padding: 8px 14px; gap: 8px; }
+    .order-id-text { font-size: 0.65rem; }
+    .order-status-text { font-size: 0.60rem; }
+    .order-amount { font-size: 0.78rem; }
+    .order-qty-badge { font-size: 0.60rem; padding: 2px 5px; }
+
+    /* ── ROAS alert ── */
+    #roas-alert { font-size: 0.78rem; }
+
+    /* ── Settings sheet ── */
     .settings-panel { border-radius: 20px 20px 0 0; }
-    .settings-inner { padding: 16px 16px 32px; }
-
-    /* body layout: single column */
-    .body-layout { grid-template-columns: 1fr; }
-
-    /* charts: limit height on mobile */
-    #chart-cpp, #chart-spent-purchase { max-height: 200px; }
-    #chart-qty-donut { max-height: 180px; }
-
-    /* hide tooltip on touch */
-    .tip { display: none; }
+    .settings-inner { padding: 14px 14px 28px; }
+    .settings-panel h2 { font-size: 0.95rem; }
+    .form-group label { font-size: 0.65rem; }
+    .form-group input { font-size: 0.82rem; padding: 9px 12px; }
   }
 
+  /* ── Extra small (iPhone SE, 320px) ── */
   @media (max-width: 374px) {
-    .mc-value { font-size: 1rem; }
-    .metric-card { padding: 12px 12px 10px; }
-    .page-big-title { font-size: 1.2rem; }
+    .metric-card { padding: 9px 10px; grid-template-columns: 1.9rem 1fr; column-gap: 6px; }
+    .mc-icon { font-size: 1.2rem; }
+    .mc-value { font-size: 0.85rem; }
+    .mc-label { font-size: 0.52rem; }
+    .page-big-title { font-size: 1.05rem; }
+    .sec-value { font-size: 0.78rem; }
+    .sec-label { font-size: 0.52rem; }
+    canvas { max-height: 140px !important; }
   }
 
   /* ─── FLOATING REFRESH (mobile) ─── */
@@ -901,7 +988,7 @@
           </div>
         </div>
         <div class="ios-card-body">
-          <canvas id="chart-cpp" style="max-height:240px"></canvas>
+          <div class="chart-wrap"><canvas id="chart-cpp"></canvas></div>
         </div>
       </div>
 
@@ -914,7 +1001,7 @@
           </div>
         </div>
         <div class="ios-card-body">
-          <canvas id="chart-spent-purchase" style="max-height:220px"></canvas>
+          <div class="chart-wrap"><canvas id="chart-spent-purchase"></canvas></div>
         </div>
       </div>
 
@@ -957,7 +1044,7 @@
           </div>
         </div>
         <div class="ios-card-body">
-          <canvas id="chart-qty-donut" style="max-height:180px"></canvas>
+          <div class="chart-wrap chart-wrap-donut"><canvas id="chart-qty-donut"></canvas></div>
         </div>
       </div>
 
@@ -1253,22 +1340,28 @@ function dChart(k){if(state.charts[k]){state.charts[k].destroy();state.charts[k]
 
 function renderCharts(m) {
   const c=state.campaigns; if(!c.length) return;
+  const mob=window.innerWidth<=699;
+  // bar charts: fixed-height wrapper (maintainAspectRatio:false) on mobile
+  const barOpts=mob?{maintainAspectRatio:false}:{maintainAspectRatio:true,aspectRatio:2};
+  // donut: wider on mobile (landscape donut), taller on desktop
+  const donutOpts=mob?{maintainAspectRatio:true,aspectRatio:2.2}:{maintainAspectRatio:true,aspectRatio:1.8};
+  const xtick={color:'rgba(60,60,67,0.4)',font:{size:mob?8:10},maxRotation:mob?40:0,maxTicksLimit:mob?5:10};
 
   dChart('cpp');
   state.charts.cpp=new Chart(document.getElementById('chart-cpp'),{
     type:'bar',
-    data:{labels:c.map(x=>trunc(x.campaign_name,22)),datasets:[{label:'Cost per Purchase (Rp)',data:c.map(x=>x.cpp||0),backgroundColor:c.map(x=>x.purchases===0?'rgba(255,59,48,0.6)':x.status==='ACTIVE'?'rgba(0,122,255,0.7)':'rgba(120,120,128,0.35)'),borderRadius:8,borderSkipped:false}]},
-    options:{...CD,plugins:{...CD.plugins,tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>rupiah(ctx.raw)}}},scales:{...CD.scales,y:{...CD.scales.y,ticks:{color:'rgba(60,60,67,0.4)',font:{size:10},callback:rupiahShort}}}},
+    data:{labels:c.map(x=>trunc(x.campaign_name,mob?11:22)),datasets:[{label:'Cost per Purchase (Rp)',data:c.map(x=>x.cpp||0),backgroundColor:c.map(x=>x.purchases===0?'rgba(255,59,48,0.6)':x.status==='ACTIVE'?'rgba(0,122,255,0.7)':'rgba(120,120,128,0.35)'),borderRadius:8,borderSkipped:false}]},
+    options:{...CD,...barOpts,plugins:{...CD.plugins,tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>rupiah(ctx.raw)}}},scales:{...CD.scales,x:{...CD.scales.x,ticks:xtick},y:{...CD.scales.y,ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?9:10},callback:rupiahShort}}}},
   });
 
   dChart('spentpurchase');
   state.charts.spentpurchase=new Chart(document.getElementById('chart-spent-purchase'),{
     type:'bar',
-    data:{labels:c.map(x=>trunc(x.campaign_name,20)),datasets:[
+    data:{labels:c.map(x=>trunc(x.campaign_name,mob?11:20)),datasets:[
       {type:'bar',label:'Spend',data:c.map(x=>x.spend),backgroundColor:'rgba(0,122,255,0.55)',borderRadius:8,yAxisID:'y'},
-      {type:'line',label:'Purchases',data:c.map(x=>x.purchases),borderColor:'#34C759',backgroundColor:'rgba(52,199,89,0.08)',pointBackgroundColor:'#34C759',pointRadius:5,pointHoverRadius:7,tension:0.35,yAxisID:'y1'},
+      {type:'line',label:'Purchases',data:c.map(x=>x.purchases),borderColor:'#34C759',backgroundColor:'rgba(52,199,89,0.08)',pointBackgroundColor:'#34C759',pointRadius:mob?3:5,pointHoverRadius:mob?5:7,tension:0.35,yAxisID:'y1'},
     ]},
-    options:{...CD,scales:{x:CD.scales.x,y:{...CD.scales.y,position:'left',ticks:{color:'rgba(60,60,67,0.4)',font:{size:10},callback:rupiahShort}},y1:{position:'right',ticks:{color:'rgba(60,60,67,0.4)',font:{size:10}},grid:{drawOnChartArea:false}}}},
+    options:{...CD,...barOpts,scales:{x:{...CD.scales.x,ticks:xtick},y:{...CD.scales.y,position:'left',ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?9:10},callback:rupiahShort}},y1:{position:'right',ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?8:10}},grid:{drawOnChartArea:false}}}},
   });
 
   if(m) {
@@ -1277,7 +1370,7 @@ function renderCharts(m) {
     state.charts.qty=new Chart(document.getElementById('chart-qty-donut'),{
       type:'doughnut',
       data:{labels:lbs,datasets:[{data:dt,backgroundColor:['#007AFF','#34C759','#FF9500','#FF3B30','#AF52DE','#30B0C7'],borderColor:'#F2F2F7',borderWidth:3}]},
-      options:{responsive:true,maintainAspectRatio:true,plugins:{...CD.plugins,tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} order (${(ctx.raw/dt.reduce((a,b)=>a+b,0)*100).toFixed(1)}%)`}}}},
+      options:{responsive:true,...donutOpts,plugins:{...CD.plugins,legend:{labels:{color:'rgba(60,60,67,0.6)',font:{size:mob?9:11,weight:'500'}}},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} order (${(ctx.raw/dt.reduce((a,b)=>a+b,0)*100).toFixed(1)}%)`}}}},
     });
   }
 }
