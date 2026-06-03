@@ -624,23 +624,15 @@
   .dr-year-nav .yr-label { font-size: 0.9rem; font-weight: 700; color: var(--label); min-width: 48px; text-align: center; }
 
   /* ─── MONITOR WAKTU SECTION ─── */
-  .monitor-range-bar {
-    display: flex; gap: 6px;
-    padding: 8px 16px 10px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
-    border-bottom: 0.5px solid var(--separator);
+  .monitor-trigger {
+    cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  .monitor-range-bar::-webkit-scrollbar { height: 0; }
-
-  .monitor-picker {
-    padding: 7px 16px 9px;
-    border-bottom: 0.5px solid var(--separator);
-    display: flex; align-items: center; gap: 10px;
-  }
-  .monitor-picker input[type="month"] {
-    background: var(--fill); border: none;
-    border-radius: 10px; padding: 5px 12px; font-size: 0.82rem;
-    font-family: inherit; color: var(--label); cursor: pointer; outline: none;
+  .monitor-trigger:active { opacity: 0.75; }
+  .monitor-range-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(0,122,255,0.1); color: var(--blue);
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 0.72rem; font-weight: 700;
   }
 
   .monitor-summary-grid {
@@ -655,6 +647,157 @@
   .mon-sum-val {
     font-size: 1.15rem; font-weight: 900;
     letter-spacing: -0.04em; color: var(--label);
+  }
+
+  /* ─── DATE RANGE PICKER OVERLAY ─── */
+  .drp-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.38); z-index: 400;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    align-items: flex-end; justify-content: center;
+  }
+  .drp-overlay.open { display: flex; }
+
+  .drp-panel {
+    background: var(--bg2);
+    width: 100%; max-width: 820px;
+    max-height: 94vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    border-radius: 24px 24px 0 0;
+    animation: sheet-up .28s var(--ease-out);
+    box-shadow: 0 -8px 48px rgba(0,0,0,0.22);
+  }
+  .drp-handle {
+    width: 36px; height: 4px; background: var(--label4);
+    border-radius: 2px; margin: 10px auto 4px; flex-shrink: 0;
+  }
+  .drp-header {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 0.5px solid var(--separator); flex-shrink: 0;
+  }
+  .drp-title { font-size: 0.95rem; font-weight: 800; color: var(--label); letter-spacing: -0.02em; }
+  .drp-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--fill); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; color: var(--label2); transition: all .15s;
+    font-family: inherit;
+  }
+  .drp-close:hover { background: var(--fill2); }
+
+  /* Mobile preset chips */
+  .drp-chips {
+    display: flex; gap: 5px; padding: 7px 14px 8px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-bottom: 0.5px solid var(--separator); flex-shrink: 0;
+  }
+  .drp-chips::-webkit-scrollbar { height: 0; }
+  .drp-chip {
+    flex-shrink: 0; padding: 5px 12px; border-radius: 20px; border: none;
+    background: var(--fill); color: var(--label2);
+    font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all .15s; white-space: nowrap;
+    touch-action: manipulation;
+  }
+  .drp-chip.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(0,122,255,0.3); }
+
+  /* Picker body */
+  .drp-body { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+  /* Desktop sidebar */
+  .drp-sidebar {
+    display: none;
+    flex-direction: column; width: 170px; flex-shrink: 0;
+    border-right: 0.5px solid var(--separator);
+    padding: 8px 0; overflow-y: auto;
+    background: var(--bg);
+  }
+  .drp-sidebar-item {
+    padding: 9px 20px; text-align: left; border: none;
+    background: none; font-family: inherit;
+    font-size: 0.83rem; font-weight: 500; color: var(--label2);
+    cursor: pointer; transition: all .12s; white-space: nowrap;
+  }
+  .drp-sidebar-item:hover { background: var(--fill2); color: var(--label); }
+  .drp-sidebar-item.active { color: var(--blue); font-weight: 700; background: rgba(0,122,255,0.07); }
+
+  /* Calendar area */
+  .drp-cals {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 12px 14px 6px; display: flex; gap: 0;
+  }
+
+  .drp-cal { flex: 1; min-width: 0; }
+  /* hide second cal on mobile */
+  .drp-cal + .drp-cal { display: none; }
+
+  /* Calendar header */
+  .cal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px; padding: 0 2px;
+  }
+  .cal-mth-lbl { font-size: 0.92rem; font-weight: 800; color: var(--label); letter-spacing: -0.02em; }
+  .cal-nav-btn {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: var(--fill); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; color: var(--label2); transition: all .12s; font-family: inherit;
+    touch-action: manipulation;
+  }
+  .cal-nav-btn:hover { background: var(--fill2); color: var(--blue); }
+
+  /* Calendar grid */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-dow {
+    text-align: center; padding: 2px 0 7px;
+    font-size: 0.60rem; font-weight: 700;
+    color: var(--label3); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .cal-cell {
+    position: relative; text-align: center;
+    padding: 2px 0; user-select: none; cursor: pointer;
+  }
+  .cal-cell.dim { cursor: default; pointer-events: none; }
+  /* background strip for in-range */
+  .cal-cell.rng-mid  { background: rgba(0,122,255,0.10); }
+  .cal-cell.rng-l    { background: linear-gradient(to right, transparent 50%, rgba(0,122,255,0.10) 50%); }
+  .cal-cell.rng-r    { background: linear-gradient(to left,  transparent 50%, rgba(0,122,255,0.10) 50%); }
+  .cal-cell.rng-l.rng-r { background: transparent; }
+  /* the visible circle */
+  .cal-inner {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto;
+    font-size: 0.84rem; font-weight: 500; color: var(--label);
+    transition: background .1s;
+  }
+  .cal-cell.dim .cal-inner { color: var(--label4); font-weight: 400; }
+  .cal-cell.today-c .cal-inner { font-weight: 800; color: var(--blue); }
+  .cal-cell:not(.dim):not(.dot-cell):hover .cal-inner { background: rgba(0,122,255,0.12); }
+  .cal-cell.dot-cell .cal-inner { background: var(--blue); color: #fff; font-weight: 700; }
+  .cal-cell.dot-cell:hover .cal-inner { background: #0062CC; }
+
+  /* Footer */
+  .drp-footer {
+    padding: 10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);
+    border-top: 0.5px solid var(--separator); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .drp-range-lbl { font-size: 0.78rem; color: var(--label2); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drp-range-lbl strong { color: var(--label); font-weight: 700; }
+  .drp-acts { display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* Desktop overrides */
+  @media (min-width: 700px) {
+    .drp-panel { border-radius: 20px; }
+    .drp-handle { display: none; }
+    .drp-chips { display: none; }
+    .drp-sidebar { display: flex; }
+    .drp-cal + .drp-cal { display: block; }
+    .drp-cals { gap: 24px; padding: 14px 20px 8px; }
+    .cal-inner { width: 36px; height: 36px; }
+    .cal-dow { padding-bottom: 8px; }
   }
 
   /* ─── MOBILE RESPONSIVE ─── */
@@ -695,9 +838,7 @@
     .tip { display: none; }
 
     /* ── Monitor Waktu section on mobile ── */
-    .monitor-range-bar { padding: 6px 12px 8px; gap: 4px; }
-    .dr-btn { padding: 4px 10px; font-size: 0.68rem; }
-    .monitor-picker { padding: 5px 12px 7px; }
+    .monitor-range-badge { font-size: 0.65rem; padding: 3px 8px; }
     .monitor-summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 2px 0 4px; }
     .mon-sum-val { font-size: 1.0rem; }
     .mon-sum-label { font-size: 0.57rem; }
@@ -996,31 +1137,14 @@
 
   <!-- ── Monitor Waktu ── -->
   <div class="ios-card anim-1" style="margin-bottom:14px">
-    <div class="ios-card-header" style="padding:12px 16px 10px">
+    <div class="ios-card-header monitor-trigger" style="padding:12px 16px 12px" onclick="openPicker()">
       <div class="ios-card-title">
         <div class="ios-card-title-icon" style="background:rgba(0,122,255,0.1)">📊</div>
         Monitor Waktu
       </div>
-      <div class="page-date-chip" id="page-date-chip" style="margin-top:0">📅 —</div>
-    </div>
-
-    <!-- Range pills -->
-    <div class="monitor-range-bar">
-      <button class="dr-btn active" onclick="setDateRange('today',this)">Hari Ini</button>
-      <button class="dr-btn" onclick="setDateRange('yesterday',this)">Kemarin</button>
-      <button class="dr-btn" onclick="setDateRange('last7',this)">7 Hari</button>
-      <button class="dr-btn" onclick="setDateRange('thismonth',this)">Bulan Ini</button>
-      <button class="dr-btn" onclick="setDateRange('monthly',this)">Bulanan ▾</button>
-      <button class="dr-btn" onclick="setDateRange('yearly',this)">Tahunan ▾</button>
-    </div>
-
-    <!-- Picker (month / year nav) -->
-    <div class="monitor-picker" id="dr-picker" style="display:none">
-      <input type="month" id="dr-month-input" style="display:none" oninput="onMonthPick(this.value)">
-      <div class="dr-year-nav" id="dr-year-nav" style="display:none">
-        <button onclick="changeYear(-1)">‹</button>
-        <span class="yr-label" id="dr-year-val">2026</span>
-        <button onclick="changeYear(1)">›</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="monitor-range-badge" id="page-date-chip">📅 Hari Ini</span>
+        <span style="font-size:0.78rem;color:var(--blue);font-weight:700">▾</span>
       </div>
     </div>
 
@@ -1051,11 +1175,11 @@
 
       <!-- Multi-day trend chart -->
       <div id="monitor-trend" style="display:none">
-        <div class="chart-wrap" style="height:180px"><canvas id="chart-daily-profit"></canvas></div>
+        <div class="chart-wrap" style="height:185px"><canvas id="chart-daily-profit"></canvas></div>
       </div>
 
       <!-- Loading state -->
-      <div id="monitor-loading" class="state-box" style="padding:12px">
+      <div id="monitor-loading" class="state-box" style="padding:14px">
         <span class="spinner"></span>
       </div>
     </div>
@@ -1298,7 +1422,7 @@ const state = {
   loading:false, metaError:null, scalevError:null,
   roasAlertFired:false, sortCol:'spend', sortDir:'desc',
   campaignFilter:'all', charts:{},
-  dateRange:'today', customMonth:null, customYear:null,
+  dateRange:'today', customSince:null, customUntil:null,
 };
 
 // ─── FORMAT ───────────────────────────────────────────────────────────────────
@@ -1338,25 +1462,21 @@ function getDaysInRange(since, until) {
 // Get current date range object from state
 function getDateRange() {
   const today=todayWib();
-  switch(state.dateRange) {
-    case 'yesterday': { const y=offsetWib(-1); return {since:y,until:y,label:'Kemarin',multi:false}; }
-    case 'last7':     return {since:offsetWib(-6),until:today,label:'7 Hari Terakhir',multi:true};
-    case 'thismonth': return {since:today.slice(0,7)+'-01',until:today,label:'Bulan Ini',multi:true};
-    case 'monthly': {
-      const ym=state.customMonth||today.slice(0,7);
-      const [y,m]=ym.split('-').map(Number);
-      const last=new Date(y,m,0).getDate();
-      const until=`${ym}-${String(last).padStart(2,'0')}`>today?today:`${ym}-${String(last).padStart(2,'0')}`;
-      const lbl=new Date(`${ym}-01T12:00:00Z`).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-      return {since:`${ym}-01`,until,label:lbl,multi:true};
-    }
-    case 'yearly': {
-      const yr=state.customYear||new Date().getFullYear();
-      const until=`${yr}-12-31`>today?today:`${yr}-12-31`;
-      return {since:`${yr}-01-01`,until,label:`Tahun ${yr}`,multi:true};
-    }
-    default: return {since:today,until:today,label:'Hari Ini',multi:false};
+  const r=presetRange(state.dateRange);
+  if(r){
+    const multi=r.since!==r.until;
+    const label=PRESETS.find(p=>p.id===state.dateRange)?.label||'Hari Ini';
+    return {since:r.since,until:r.until,label,multi};
   }
+  if(state.dateRange==='custom'){
+    if(!state.customSince) return {since:today,until:today,label:'Hari Ini',multi:false};
+    const s=state.customSince, u=state.customUntil||state.customSince;
+    const multi=s!==u;
+    const fmtD=d=>new Date(d+'T12:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+    const label=multi?`${fmtD(s)} – ${fmtD(u)}`:fmtD(s);
+    return {since:s,until:u,label,multi};
+  }
+  return {since:today,until:today,label:'Hari Ini',multi:false};
 }
 
 // ─── META ADS ─────────────────────────────────────────────────────────────────
@@ -1500,14 +1620,7 @@ function renderCards(m, cfg) {
   const pt=document.getElementById('page-title');
   if(pt) pt.textContent='Dashboard '+dr.label;
   const dc=document.getElementById('page-date-chip');
-  if(dc){
-    if(!dr.multi){
-      dc.textContent='📅 '+new Date(dr.since+'T12:00:00Z').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    } else {
-      const fmt=d=>new Date(d+'T12:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:dr.dateRange==='yearly'?'numeric':undefined});
-      dc.textContent=`📅 ${fmt(dr.since)} – ${fmt(dr.until)}`;
-    }
-  }
+  if(dc) dc.textContent='📅 '+dr.label;
 }
 
 function animVal(id, target, fmt) {
@@ -1841,35 +1954,212 @@ function mockOrders(dr){
   return result;
 }
 
-// ─── DATE RANGE SELECTOR ──────────────────────────────────────────────────────
+// ─── DATE RANGE PICKER ────────────────────────────────────────────────────────
 
-function setDateRange(range, btn) {
-  state.dateRange=range;
-  document.querySelectorAll('.dr-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  const picker=document.getElementById('dr-picker');
-  const monthInput=document.getElementById('dr-month-input');
-  const yearNav=document.getElementById('dr-year-nav');
-  if(range==='monthly'){
-    picker.style.display='';
-    monthInput.style.display='';
-    yearNav.style.display='none';
-    if(!state.customMonth) state.customMonth=todayWib().slice(0,7);
-    monthInput.value=state.customMonth;
-  } else if(range==='yearly'){
-    picker.style.display='';
-    monthInput.style.display='none';
-    yearNav.style.display='';
-    if(!state.customYear) state.customYear=new Date().getFullYear();
-    document.getElementById('dr-year-val').textContent=state.customYear;
-  } else {
-    picker.style.display='none';
+const MONTH_LONG  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const MONTH_SHORT2 = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+
+const PRESETS = [
+  { id:'today',     label:'Hari Ini' },
+  { id:'yesterday', label:'Kemarin' },
+  { id:'last7',     label:'7 Hari Terakhir' },
+  { id:'thisweek',  label:'Minggu Ini' },
+  { id:'last14',    label:'2 Minggu' },
+  { id:'thismonth', label:'Bulan Ini' },
+  { id:'lastmonth', label:'Bulan Lalu' },
+  { id:'thisyear',  label:'Tahun Ini' },
+];
+
+function presetRange(id) {
+  const today = todayWib();
+  switch(id) {
+    case 'today':     return { since:today, until:today };
+    case 'yesterday': { const y=offsetWib(-1); return {since:y,until:y}; }
+    case 'last7':     return { since:offsetWib(-6), until:today };
+    case 'thisweek':  {
+      const d=new Date(today+'T12:00:00Z'), dow=(d.getUTCDay()+6)%7;
+      const mon=new Date(d); mon.setUTCDate(d.getUTCDate()-dow);
+      return { since:mon.toISOString().slice(0,10), until:today };
+    }
+    case 'last14':    return { since:offsetWib(-13), until:today };
+    case 'thismonth': return { since:today.slice(0,7)+'-01', until:today };
+    case 'lastmonth': {
+      const d=new Date(today.slice(0,7)+'-01T12:00:00Z'); d.setUTCMonth(d.getUTCMonth()-1);
+      const ym=d.toISOString().slice(0,7), last=new Date(d.getUTCFullYear(),d.getUTCMonth()+1,0).getDate();
+      return { since:`${ym}-01`, until:`${ym}-${String(last).padStart(2,'0')}` };
+    }
+    case 'thisyear':  return { since:today.slice(0,4)+'-01-01', until:today };
+    default: return null;
   }
-  refreshData();
 }
 
-function onMonthPick(val){if(val){state.customMonth=val;refreshData();}}
-function changeYear(delta){state.customYear=(state.customYear||new Date().getFullYear())+delta;document.getElementById('dr-year-val').textContent=state.customYear;refreshData();}
+const pkr = {
+  lY:0, lM:0, rY:0, rM:0,
+  start:null, end:null, hover:null,
+  phase:0,          // 0=idle 1=picking end
+  activePreset:'today',
+};
+
+function openPicker() {
+  const today=todayWib(), [y,m]=today.split('-').map(Number);
+  pkr.lY=y; pkr.lM=m-1;
+  const nx=new Date(y,m,1); pkr.rY=nx.getFullYear(); pkr.rM=nx.getMonth();
+
+  // load current range into picker
+  const dr=getDateRange();
+  pkr.start=dr.since; pkr.end=(dr.until===dr.since)?null:dr.until;
+  pkr.phase=0; pkr.hover=null;
+  pkr.activePreset=state.dateRange==='custom'?null:state.dateRange;
+
+  // navigate left cal to show start month
+  if(pkr.start){ const [sy,sm]=pkr.start.split('-').map(Number); pkr.lY=sy; pkr.lM=sm-1; const nx2=new Date(sy,sm,1); pkr.rY=nx2.getFullYear(); pkr.rM=nx2.getMonth(); }
+
+  document.getElementById('drp-overlay').classList.add('open');
+  renderPickerFull();
+}
+function closePicker(){ document.getElementById('drp-overlay').classList.remove('open'); }
+function drpOverlayClick(e){ if(e.target===e.currentTarget) closePicker(); }
+
+function renderPickerFull(){
+  renderDrpSidebar(); renderDrpChips(); renderDrpCals(); renderDrpFooter();
+}
+
+function renderDrpSidebar(){
+  const el=document.getElementById('drp-sidebar'); if(!el) return;
+  el.innerHTML=PRESETS.map(p=>`<button class="drp-sidebar-item${pkr.activePreset===p.id?' active':''}" onclick="drpPreset('${p.id}')">${p.label}</button>`).join('');
+}
+function renderDrpChips(){
+  const el=document.getElementById('drp-chips'); if(!el) return;
+  el.innerHTML=PRESETS.map(p=>`<button class="drp-chip${pkr.activePreset===p.id?' active':''}" onclick="drpPreset('${p.id}')">${p.label}</button>`).join('');
+}
+
+function drpPreset(id){
+  const r=presetRange(id); if(!r) return;
+  pkr.start=r.since; pkr.end=r.until===r.since?null:r.until;
+  pkr.phase=0; pkr.hover=null; pkr.activePreset=id;
+  const [sy,sm]=r.since.split('-').map(Number);
+  pkr.lY=sy; pkr.lM=sm-1;
+  const nx=new Date(sy,sm,1); pkr.rY=nx.getFullYear(); pkr.rM=nx.getMonth();
+  renderPickerFull();
+}
+
+function pickerNavMonth(side, delta){
+  if(side==='l'){
+    const d=new Date(pkr.lY,pkr.lM+delta,1); pkr.lY=d.getFullYear(); pkr.lM=d.getMonth();
+    const nx=new Date(pkr.lY,pkr.lM+1,1); pkr.rY=nx.getFullYear(); pkr.rM=nx.getMonth();
+  } else {
+    const d=new Date(pkr.rY,pkr.rM+delta,1); pkr.rY=d.getFullYear(); pkr.rM=d.getMonth();
+  }
+  renderDrpCals();
+}
+
+function pickerDayClick(ds){
+  if(pkr.phase===0){
+    pkr.start=ds; pkr.end=null; pkr.phase=1; pkr.hover=null; pkr.activePreset=null;
+  } else {
+    if(ds<pkr.start){ pkr.end=pkr.start; pkr.start=ds; }
+    else if(ds===pkr.start){ pkr.end=null; }
+    else { pkr.end=ds; }
+    pkr.phase=0; pkr.hover=null;
+  }
+  renderPickerFull();
+}
+
+function pickerDayHover(ds){
+  if(pkr.phase!==1) return;
+  pkr.hover=ds; renderDrpCals(); renderDrpFooter();
+}
+function pickerHoverLeave(){ if(pkr.phase===1){ pkr.hover=null; renderDrpCals(); renderDrpFooter(); } }
+
+function renderDrpCals(){
+  const l=document.getElementById('drp-cal-l'), r=document.getElementById('drp-cal-r');
+  if(l) l.innerHTML=buildCalHtml(pkr.lY, pkr.lM, 'l');
+  if(r) r.innerHTML=buildCalHtml(pkr.rY, pkr.rM, 'r');
+}
+
+function buildCalHtml(year, month, side){
+  const dim=new Date(year,month+1,0).getDate();
+  let fd=new Date(year,month,1).getDay(); fd=(fd+6)%7; // Mon=0
+  const today=todayWib();
+
+  // effective range for highlighting
+  const effEnd = pkr.phase===1 && pkr.hover
+    ? (pkr.hover>=pkr.start ? pkr.hover : pkr.start)
+    : (pkr.end||pkr.start);
+  const effStart = pkr.phase===1 && pkr.hover && pkr.hover<pkr.start
+    ? pkr.hover : pkr.start;
+
+  let h=`<div class="cal-head">
+    <button class="cal-nav-btn" onclick="pickerNavMonth('${side}',-1)">←</button>
+    <span class="cal-mth-lbl">${MONTH_LONG[month]} ${year}</span>
+    <button class="cal-nav-btn" onclick="pickerNavMonth('${side}',1)">→</button>
+  </div><div class="cal-grid">
+  <div class="cal-dow">Mo</div><div class="cal-dow">Tu</div><div class="cal-dow">We</div>
+  <div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>
+  <div class="cal-dow">Su</div>`;
+
+  // leading dim cells
+  for(let i=0;i<fd;i++) h+=`<div class="cal-cell dim"><div class="cal-inner"></div></div>`;
+
+  for(let d=1;d<=dim;d++){
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const col=(fd+d-1)%7; // 0=Mon 6=Sun
+    const isStart=effStart&&ds===effStart;
+    const isEnd=effEnd&&ds===effEnd&&effEnd!==effStart;
+    const isSingle=pkr.start&&ds===pkr.start&&!pkr.end&&pkr.phase===0;
+    const inRange=effStart&&effEnd&&effEnd!==effStart&&ds>effStart&&ds<effEnd;
+    const isToday=ds===today;
+
+    let cls=['cal-cell'];
+    if(isStart&&effEnd&&effEnd!==effStart){ cls.push('dot-cell','rng-l'); }
+    else if(isEnd){                         cls.push('dot-cell','rng-r'); }
+    else if(isSingle){                      cls.push('dot-cell'); }
+    else if(inRange){
+      cls.push('rng-mid');
+      if(col===0) cls.push('rng-l');
+      if(col===6) cls.push('rng-r');
+    }
+    if(isToday&&!isStart&&!isEnd&&!isSingle) cls.push('today-c');
+
+    h+=`<div class="${cls.join(' ')}" onclick="pickerDayClick('${ds}')" onmouseover="pickerDayHover('${ds}')">
+      <div class="cal-inner">${d}</div></div>`;
+  }
+
+  // trailing dim
+  const trail=(7-((fd+dim)%7))%7;
+  for(let i=1;i<=trail;i++) h+=`<div class="cal-cell dim"><div class="cal-inner"></div></div>`;
+  h+='</div>';
+  return h;
+}
+
+function renderDrpFooter(){
+  const lbl=document.getElementById('drp-range-lbl');
+  const btn=document.getElementById('drp-apply-btn');
+  if(!pkr.start){ if(lbl) lbl.innerHTML='Pilih tanggal mulai'; if(btn) btn.disabled=true; return; }
+  const fmtD=ds=>new Date(ds+'T12:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+  if(pkr.phase===1){
+    const previewEnd=pkr.hover||(pkr.end||pkr.start);
+    const s=pkr.start<=previewEnd?pkr.start:previewEnd, e=pkr.start<=previewEnd?previewEnd:pkr.start;
+    if(lbl) lbl.innerHTML=`<strong>${fmtD(s)}</strong> – <strong>${fmtD(e)}</strong>`;
+    if(btn) btn.disabled=true;
+  } else {
+    const until=pkr.end||pkr.start;
+    if(lbl) lbl.innerHTML=pkr.end?`<strong>${fmtD(pkr.start)}</strong> – <strong>${fmtD(pkr.end)}</strong>`:`<strong>${fmtD(pkr.start)}</strong>`;
+    if(btn) btn.disabled=false;
+  }
+}
+
+function applyPicker(){
+  if(!pkr.start) return;
+  const since=pkr.start, until=pkr.end||pkr.start;
+  // map to preset id if possible
+  let matched=null;
+  for(const p of PRESETS){ const r=presetRange(p.id); if(r&&r.since===since&&r.until===until){matched=p.id;break;} }
+  if(matched){ state.dateRange=matched; state.customSince=null; state.customUntil=null; }
+  else { state.dateRange='custom'; state.customSince=since; state.customUntil=until; }
+  closePicker();
+  refreshData();
+}
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────
 
@@ -1925,5 +2215,34 @@ function init(){requestNotif();startAutoRefresh();refreshData();}
 if(sessionStorage.getItem('pmAuth')==='ok') init();
 </script>
 <button class="fab" id="fab-refresh" onclick="refreshData()" title="Refresh">↺</button>
+
+<!-- ── Date Range Picker ── -->
+<div class="drp-overlay" id="drp-overlay" onclick="drpOverlayClick(event)">
+  <div class="drp-panel">
+    <div class="drp-handle"></div>
+    <div class="drp-header">
+      <span class="drp-title">Pilih Periode</span>
+      <button class="drp-close" onclick="closePicker()">✕</button>
+    </div>
+    <!-- Mobile: horizontal preset chips -->
+    <div class="drp-chips" id="drp-chips"></div>
+    <div class="drp-body">
+      <!-- Desktop: sidebar presets -->
+      <div class="drp-sidebar" id="drp-sidebar"></div>
+      <!-- Calendars -->
+      <div class="drp-cals" onmouseleave="pickerHoverLeave()">
+        <div class="drp-cal" id="drp-cal-l"></div>
+        <div class="drp-cal" id="drp-cal-r"></div>
+      </div>
+    </div>
+    <div class="drp-footer">
+      <div class="drp-range-lbl" id="drp-range-lbl">Pilih tanggal mulai</div>
+      <div class="drp-acts">
+        <button class="btn" onclick="closePicker()">Batal</button>
+        <button class="btn btn-primary" id="drp-apply-btn" onclick="applyPicker()" disabled>Terapkan</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
