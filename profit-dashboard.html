@@ -2210,7 +2210,8 @@ function drpPreset(id){
   const [sy,sm]=r.since.split('-').map(Number);
   pkr.lY=sy; pkr.lM=sm-1;
   const nx=new Date(sy,sm,1); pkr.rY=nx.getFullYear(); pkr.rM=nx.getMonth();
-  renderPickerFull();
+  // Preset sudah lengkap (start + end) — langsung terapkan, tidak perlu tap Terapkan
+  applyPicker();
 }
 
 function pickerNavMonth(side, delta){
@@ -2225,14 +2226,18 @@ function pickerNavMonth(side, delta){
 
 function pickerDayClick(ds){
   if(pkr.phase===0){
+    // First tap: select start date, wait for end
     pkr.start=ds; pkr.end=null; pkr.phase=1; pkr.hover=null; pkr.activePreset=null;
+    renderPickerFull();
   } else {
+    // Second tap: confirm end date — auto-apply immediately (no Terapkan needed)
     if(ds<pkr.start){ pkr.end=pkr.start; pkr.start=ds; }
     else if(ds===pkr.start){ pkr.end=null; }
     else { pkr.end=ds; }
     pkr.phase=0; pkr.hover=null;
+    // Apply straight away so user doesn't need a third tap on Terapkan
+    applyPicker();
   }
-  renderPickerFull();
 }
 
 function pickerDayHover(ds){
