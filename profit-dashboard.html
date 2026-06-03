@@ -1373,17 +1373,31 @@
         </div>
       </div>
 
-      <!-- Order feed -->
+      <!-- Order feed (ready + confirmed only) -->
       <div class="ios-card">
         <div class="ios-card-header">
           <div class="ios-card-title">
             <div class="ios-card-title-icon" style="background:rgba(52,199,89,0.1)">🛒</div>
             <span id="order-feed-title">Order Hari Ini</span>
           </div>
+          <span style="font-size:0.65rem;color:var(--label3);font-weight:600">Ready &amp; Confirmed</span>
           <span id="scalev-error"></span>
         </div>
         <div class="ios-card-body no-pad" id="order-feed-wrap">
           <div class="state-box"><span class="spinner"></span><span>Memuat...</span></div>
+        </div>
+      </div>
+
+      <!-- Pending & Cancel section -->
+      <div class="ios-card" id="pending-cancel-card" style="margin-top:12px">
+        <div class="ios-card-header">
+          <div class="ios-card-title">
+            <div class="ios-card-title-icon" style="background:rgba(255,149,0,0.12)">⏳</div>
+            Pending &amp; Cancel
+          </div>
+        </div>
+        <div class="ios-card-body no-pad" id="pending-cancel-wrap">
+          <div class="state-box"><span class="spinner"></span></div>
         </div>
       </div>
 
@@ -1424,8 +1438,14 @@ function saveConfig(patch) {
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
+// ─── ORDER STATUS HELPERS ─────────────────────────────────────────────────────
+const isActiveOrder    = o => { const s=(o.order_status||'').toLowerCase(); return s==='ready'||s==='confirmed'; };
+const isPendingOrder   = o => (o.order_status||'').toLowerCase()==='pending';
+const isCancelledOrder = o => { const s=(o.order_status||'').toLowerCase(); return s.includes('cancel'); };
+
 const state = {
   campaigns:[], orders:[], metrics:null, dailyData:[], chartData:[],
+  pendingOrders:[], cancelledOrders:[],
   loading:false, metaError:null, scalevError:null,
   roasAlertFired:false, sortCol:'spend', sortDir:'desc',
   campaignFilter:'all', charts:{},
@@ -2010,13 +2030,14 @@ function renderOrderFeed() {
   const dr=getDateRange();
   const ft=document.getElementById('order-feed-title');
   if(ft) ft.textContent=`Order ${dr.label}`;
-  if(!state.orders.length){w.innerHTML=`<div class="state-box"><span>Belum ada order untuk ${dr.label}</span></div>`;return;}
-  const sorted=[...state.orders].sort((a,b)=>{if(!a.time)return 1;if(!b.time)return-1;return new Date(b.time)-new Date(a.time);});
+  // Only show ready + confirmed orders in main feed
+  const active=state.orders.filter(isActiveOrder);
+  if(!active.length){w.innerHTML=`<div class="state-box"><span>Belum ada order ready/confirmed untuk ${dr.label}</span></div>`;return;}
+  const sorted=[...active].sort((a,b)=>{if(!a.time)return 1;if(!b.time)return-1;return new Date(b.time)-new Date(a.time);});
   w.innerHTML=`<div class="order-feed">${sorted.map(o=>{
     const s=(o.order_status||'').toLowerCase();
-    const dc=s==='pending'?'var(--orange)':s.includes('cancel')?'var(--red)':'var(--green)';
     return `<div class="order-row">
-      <div class="order-status-dot" style="background:${dc}"></div>
+      <div class="order-status-dot" style="background:var(--green)"></div>
       <div class="order-info">
         <div class="order-id-text">#${o.order_id}</div>
         <div class="order-status-text">${s}</div>
@@ -2025,6 +2046,66 @@ function renderOrderFeed() {
       <div class="order-amount">${rupiah(o.net_revenue)}</div>
     </div>`;
   }).join('')}</div>`;
+}
+
+function renderPendingCancelSection() {
+  const wrap = document.getElementById('pending-cancel-wrap');
+  if(!wrap) return;
+  const cfg = loadConfig();
+
+  const pending   = state.pendingOrders;
+  const cancelled = state.cancelledOrders;
+
+  if(!pending.length && !cancelled.length){
+    wrap.innerHTML=`<div class="state-box" style="padding:14px"><span style="color:var(--label3);font-size:0.82rem">Tidak ada order pending/cancel</span></div>`;
+    return;
+  }
+
+  // Helper: calculate subtotals for a group
+  function calcGroup(orders){
+    const rev   = orders.reduce((s,o)=>s+o.net_revenue,0);
+    const units = orders.reduce((s,o)=>s+o.quantity,0);
+    const hpp   = units*cfg.hppPerUnit;
+    const pkg   = orders.length*cfg.packagingPerOrder;
+    const fee   = orders.reduce((s,o)=>s+(o.scalev_fee||0)+(o.payment_fee||0),0);
+    return {count:orders.length, units, rev, hpp, pkg, fee, potential:rev-hpp-pkg-fee};
+  }
+
+  const p = calcGroup(pending);
+  const c = calcGroup(cancelled);
+
+  function groupHtml(title, color, icon, g, orders) {
+    if(!g.count) return '';
+    const sorted=[...orders].sort((a,b)=>{if(!a.time)return 1;if(!b.time)return-1;return new Date(b.time)-new Date(a.time);});
+    const rows=sorted.slice(0,8).map(o=>`
+      <div class="order-row" style="padding:8px 16px">
+        <div class="order-status-dot" style="background:${color}"></div>
+        <div class="order-info">
+          <div class="order-id-text">#${o.order_id}</div>
+          <div class="order-status-text">${(o.order_status||'').toLowerCase()}</div>
+        </div>
+        <div class="order-qty-badge">${o.quantity}×</div>
+        <div class="order-amount">${rupiah(o.net_revenue)}</div>
+      </div>`).join('');
+    const more = g.count>8 ? `<div style="text-align:center;padding:6px;font-size:0.72rem;color:var(--label3)">+${g.count-8} order lainnya</div>` : '';
+    return `
+      <div style="padding:10px 16px 4px;display:flex;align-items:center;gap:8px;border-top:0.5px solid var(--separator)">
+        <span style="font-size:1rem">${icon}</span>
+        <span style="font-weight:800;font-size:0.85rem;color:${color}">${title}</span>
+        <span style="margin-left:auto;font-size:0.72rem;font-weight:700;background:${color}22;color:${color};padding:2px 8px;border-radius:10px">${g.count} order</span>
+      </div>
+      <div class="stat-list" style="margin:4px 0 0">
+        <div class="stat-row"><div class="stat-row-left"><div class="stat-color-bar" style="background:${color}66"></div><span class="stat-label">Total Revenue</span></div><span class="stat-val">${rupiah(g.rev)}</span></div>
+        <div class="stat-row"><div class="stat-row-left"><div class="stat-color-bar" style="background:var(--indigo)"></div><span class="stat-label">HPP</span></div><span class="stat-val">${rupiah(g.hpp)}</span></div>
+        <div class="stat-row"><div class="stat-row-left"><div class="stat-color-bar" style="background:var(--purple)"></div><span class="stat-label">Packaging + Fee</span></div><span class="stat-val">${rupiah(g.pkg+g.fee)}</span></div>
+        <div class="stat-row" style="background:${color}08"><div class="stat-row-left"><div class="stat-color-bar" style="background:${color}"></div><span class="stat-label" style="font-weight:700">${title==='Pending'?'Potensi Profit':'Estimasi Rugi'}</span></div><span class="stat-val" style="font-weight:800;color:${color}">${rupiah(g.potential)}</span></div>
+      </div>
+      <div style="border-top:0.5px solid var(--separator);margin:4px 0 0">${rows}${more}</div>`;
+  }
+
+  wrap.innerHTML =
+    groupHtml('Pending','var(--orange)','⏳', p, pending) +
+    groupHtml('Cancel','var(--red)','❌', c, cancelled);
 }
 
 // ─── ALERTS ───────────────────────────────────────────────────────────────────
@@ -2085,8 +2166,13 @@ async function refreshData(){
     }
   }
 
+  // Split orders by status — metrics only count ready/confirmed
+  const activeOrders    = state.orders.filter(isActiveOrder);
+  state.pendingOrders   = state.orders.filter(isPendingOrder);
+  state.cancelledOrders = state.orders.filter(isCancelledOrder);
+
   const metaDaily=md.status==='fulfilled'?md.value:{};
-  state.dailyData=buildDailyData(state.orders,metaDaily,cfg,dr.since,dr.until);
+  state.dailyData=buildDailyData(activeOrders,metaDaily,cfg,dr.since,dr.until);
   patchRecentSpend(state.dailyData);
 
   // Chart data (extended 30-day window or same as metric)
@@ -2094,24 +2180,24 @@ async function refreshData(){
     let chartOrders=chartSr.status==='fulfilled'?chartSr.value:null;
     if(!chartOrders||!chartOrders.length) chartOrders=mockOrders({since:cr.since,until:cr.until,multi:true});
     const chartMeta=chartMd.status==='fulfilled'?chartMd.value:{};
-    state.chartData=buildDailyData(chartOrders,chartMeta,cfg,cr.since,cr.until);
+    state.chartData=buildDailyData(
+      chartOrders.filter(isActiveOrder),chartMeta,cfg,cr.since,cr.until);
     patchRecentSpend(state.chartData);
 
-    // Overlay in-range dates with state.dailyData so chart bars for the
-    // selected period always match the metric cards below exactly
     const dailyByDate=Object.fromEntries(state.dailyData.map(d=>[d.date,d]));
     state.chartData=state.chartData.map(d=>dailyByDate[d.date]||d);
   } else {
     state.chartData=state.dailyData;
   }
 
-  state.metrics=calculateMetrics(state.orders,state.campaigns,cfg);
+  state.metrics=calculateMetrics(activeOrders,state.campaigns,cfg);
   renderCards(state.metrics,cfg);
   renderStackedBar(state.metrics);
   renderCampaignTable();
   renderCharts(state.metrics);
   renderDailyProfitChart();
   renderOrderFeed();
+  renderPendingCancelSection();
   checkRoasAlert(state.metrics.roas,cfg.roasThreshold);
   updateStatus(); updateTime();
   state.loading=false; setLoading(false);
