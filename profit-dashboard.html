@@ -775,6 +775,7 @@
     margin: 0 auto;
     font-size: 0.84rem; font-weight: 500; color: var(--label);
     transition: background .1s;
+    pointer-events: none; /* let all clicks/touches pass to parent .cal-cell */
   }
   .cal-cell.dim .cal-inner { color: var(--label4); font-weight: 400; }
   .cal-cell.today-c .cal-inner { font-weight: 800; color: var(--blue); }
@@ -2195,11 +2196,11 @@ function renderPickerFull(){
 
 function renderDrpSidebar(){
   const el=document.getElementById('drp-sidebar'); if(!el) return;
-  el.innerHTML=PRESETS.map(p=>`<button class="drp-sidebar-item${pkr.activePreset===p.id?' active':''}" onclick="drpPreset('${p.id}')">${p.label}</button>`).join('');
+  el.innerHTML=PRESETS.map(p=>`<button class="drp-sidebar-item${pkr.activePreset===p.id?' active':''}" onclick="drpPreset('${p.id}')" ontouchend="event.preventDefault();drpPreset('${p.id}')">${p.label}</button>`).join('');
 }
 function renderDrpChips(){
   const el=document.getElementById('drp-chips'); if(!el) return;
-  el.innerHTML=PRESETS.map(p=>`<button class="drp-chip${pkr.activePreset===p.id?' active':''}" onclick="drpPreset('${p.id}')">${p.label}</button>`).join('');
+  el.innerHTML=PRESETS.map(p=>`<button class="drp-chip${pkr.activePreset===p.id?' active':''}" onclick="drpPreset('${p.id}')" ontouchend="event.preventDefault();drpPreset('${p.id}')">${p.label}</button>`).join('');
 }
 
 function drpPreset(id){
@@ -2254,26 +2255,8 @@ document.addEventListener('DOMContentLoaded', function setupCalEvents(){
     return el.dataset.date || null;
   }
 
-  // Click — desktop + Android fallback
-  wrap.addEventListener('click', e => {
-    const ds = cellDateFromEvent(e);
-    if(ds) pickerDayClick(ds);
-  });
-
-  // Touchstart/touchend — primary tap handler on iOS Safari
-  let _touchStartDs = null;
-  wrap.addEventListener('touchstart', e => {
-    _touchStartDs = cellDateFromEvent(e);
-  }, {passive: true});
-  wrap.addEventListener('touchend', e => {
-    const ds = _touchStartDs;
-    _touchStartDs = null;
-    if(!ds) return;
-    e.preventDefault(); // prevent ghost click
-    pickerDayClick(ds);
-  }, {passive: false});
-
-  // Hover preview (mouse only)
+  // Cells use inline onclick (desktop) + ontouchend with stopPropagation (mobile).
+  // Delegation here handles only mouse hover preview — no click delegation needed.
   wrap.addEventListener('mouseover', e => {
     const ds = cellDateFromEvent(e);
     if(ds) pickerDayHover(ds);
@@ -2300,9 +2283,9 @@ function buildCalHtml(year, month, side){
     ? pkr.hover : pkr.start;
 
   let h=`<div class="cal-head">
-    <button class="cal-nav-btn" onclick="pickerNavMonth('${side}',-1)">←</button>
+    <button class="cal-nav-btn" onclick="pickerNavMonth('${side}',-1)" ontouchend="event.preventDefault();event.stopPropagation();pickerNavMonth('${side}',-1)">←</button>
     <span class="cal-mth-lbl">${MONTH_LONG[month]} ${year}</span>
-    <button class="cal-nav-btn" onclick="pickerNavMonth('${side}',1)">→</button>
+    <button class="cal-nav-btn" onclick="pickerNavMonth('${side}',1)" ontouchend="event.preventDefault();event.stopPropagation();pickerNavMonth('${side}',1)">→</button>
   </div><div class="cal-grid">
   <div class="cal-dow">Mo</div><div class="cal-dow">Tu</div><div class="cal-dow">We</div>
   <div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>
@@ -2331,7 +2314,7 @@ function buildCalHtml(year, month, side){
     }
     if(isToday&&!isStart&&!isEnd&&!isSingle) cls.push('today-c');
 
-    h+=`<div class="${cls.join(' ')}" data-date="${ds}"><div class="cal-inner">${d}</div></div>`;
+    h+=`<div class="${cls.join(' ')}" data-date="${ds}" onclick="pickerDayClick('${ds}')" ontouchend="event.preventDefault();event.stopPropagation();pickerDayClick('${ds}')"><div class="cal-inner">${d}</div></div>`;
   }
 
   // trailing dim
@@ -2461,7 +2444,7 @@ if(sessionStorage.getItem('pmAuth')==='ok') init();
     <div class="drp-handle"></div>
     <div class="drp-header">
       <span class="drp-title">Pilih Periode</span>
-      <button class="drp-close" onclick="closePicker()">✕</button>
+      <button class="drp-close" onclick="closePicker()" ontouchend="event.preventDefault();closePicker()">✕</button>
     </div>
     <!-- Mobile: horizontal preset chips -->
     <div class="drp-chips" id="drp-chips"></div>
@@ -2477,8 +2460,8 @@ if(sessionStorage.getItem('pmAuth')==='ok') init();
     <div class="drp-footer">
       <div class="drp-range-lbl" id="drp-range-lbl">Pilih tanggal mulai</div>
       <div class="drp-acts">
-        <button class="btn" onclick="closePicker()">Batal</button>
-        <button class="btn btn-primary" id="drp-apply-btn" onclick="applyPicker()" disabled>Terapkan</button>
+        <button class="btn" onclick="closePicker()" ontouchend="event.preventDefault();closePicker()">Batal</button>
+        <button class="btn btn-primary" id="drp-apply-btn" onclick="applyPicker()" ontouchend="event.preventDefault();applyPicker()" disabled>Terapkan</button>
       </div>
     </div>
   </div>
