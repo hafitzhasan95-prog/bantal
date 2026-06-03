@@ -1569,7 +1569,7 @@ async function fetchScalev(cfg) {
   const hdrs={'Authorization':`Bearer ${cfg.scalevKey}`,'Accept':'application/json'};
   const all=[]; let cur=null,pg=0;
   do {
-    const p=new URLSearchParams({page_size:25,draft_time_since:since,draft_time_until:until,columns:'net_revenue,shipping_cost,final_variants,total_quantity'});
+    const p=new URLSearchParams({page_size:25,draft_time_since:since,draft_time_until:until,columns:'net_revenue,shipping_cost,final_variants,total_quantity,recipient_name'});
     if(cur) p.set('next_cursor',cur);
     const r=await fetch(`${base}/v3/orders?${p}`,{headers:hdrs});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.message||e?.error||`Scalev ${r.status}`);}
@@ -1578,6 +1578,7 @@ async function fetchScalev(cfg) {
   return all.map(o=>({
     order_id:o.order_id||o.id||'—', order_status:o.status||'unknown',
     payment_status:o.payment_status||'unknown',
+    customer_name:o.recipient_name||o.buyer_name||o.customer_name||'',
     net_revenue:parseFloat(o.net_revenue||0), quantity:parseInt(o.total_quantity||1),
     scalev_fee:parseFloat(o.scalev_fee||0), payment_fee:parseFloat(o.payment_fee||0),
     time:o.pending_time||o.draft_time||o.confirmed_time||null,
@@ -1617,13 +1618,13 @@ async function fetchScalevRange(cfg, since, until) {
   const all=[]; let cur=null,pg=0;
   try {
     do {
-      const p=new URLSearchParams({page_size:25,draft_time_since:utcS,draft_time_until:utcU,columns:'net_revenue,shipping_cost,final_variants,total_quantity'});
+      const p=new URLSearchParams({page_size:25,draft_time_since:utcS,draft_time_until:utcU,columns:'net_revenue,shipping_cost,final_variants,total_quantity,recipient_name'});
       if(cur) p.set('next_cursor',cur);
       const r=await fetch(`${base}/v3/orders?${p}`,{headers:hdrs});
       if(!r.ok) return [];
       const d=await r.json(); all.push(...(d.data||[])); cur=d.has_next?d.next_cursor:null; if(++pg>40) break;
     } while(cur);
-    return all.map(o=>({order_id:o.order_id||o.id||'—',order_status:o.status||'unknown',payment_status:o.payment_status||'unknown',net_revenue:parseFloat(o.net_revenue||0),quantity:parseInt(o.total_quantity||1),scalev_fee:parseFloat(o.scalev_fee||0),payment_fee:parseFloat(o.payment_fee||0),time:o.pending_time||o.draft_time||o.confirmed_time||null}));
+    return all.map(o=>({order_id:o.order_id||o.id||'—',order_status:o.status||'unknown',payment_status:o.payment_status||'unknown',customer_name:o.recipient_name||o.buyer_name||o.customer_name||'',net_revenue:parseFloat(o.net_revenue||0),quantity:parseInt(o.total_quantity||1),scalev_fee:parseFloat(o.scalev_fee||0),payment_fee:parseFloat(o.payment_fee||0),time:o.pending_time||o.draft_time||o.confirmed_time||null}));
   } catch{return [];}
 }
 
@@ -2040,7 +2041,7 @@ function renderOrderFeed() {
       <div class="order-status-dot" style="background:var(--green)"></div>
       <div class="order-info">
         <div class="order-id-text">#${o.order_id}</div>
-        <div class="order-status-text">${s}</div>
+        <div class="order-status-text">${o.customer_name||s}</div>
       </div>
       <div class="order-qty-badge">${o.quantity}×</div>
       <div class="order-amount">${rupiah(o.net_revenue)}</div>
@@ -2082,7 +2083,7 @@ function renderPendingCancelSection() {
         <div class="order-status-dot" style="background:${color}"></div>
         <div class="order-info">
           <div class="order-id-text">#${o.order_id}</div>
-          <div class="order-status-text">${(o.order_status||'').toLowerCase()}</div>
+          <div class="order-status-text">${o.customer_name||(o.order_status||'').toLowerCase()}</div>
         </div>
         <div class="order-qty-badge">${o.quantity}×</div>
         <div class="order-amount">${rupiah(o.net_revenue)}</div>
@@ -2220,12 +2221,14 @@ function mockOrders(dr){
   const days=dr.multi?getDaysInRange(dr.since,dr.until):[dr.since];
   const s=['pending','confirmed','pending','confirmed','confirmed'];
   const revs=[89000,178000,89000,267000]; const qtys=[1,2,1,3];
+  const names=['Budi Santoso','Siti Rahayu','Andi Wijaya','Dewi Lestari','Agus Purnomo',
+                'Rina Kusuma','Doni Prasetyo','Fitri Handayani','Reza Firmansyah','Lina Marlina'];
   const result=[];
   days.forEach((date,di)=>{
     const cnt=dr.multi?Math.floor(5+Math.random()*15):22;
     for(let i=0;i<cnt;i++){
       const hr=7+Math.floor(Math.random()*14), mn=Math.floor(Math.random()*60);
-      result.push({order_id:`${date.replace(/-/g,'').slice(2)}${String(i).padStart(3,'0')}`,order_status:s[(di+i)%5],payment_status:'paid',net_revenue:revs[(di+i)%4],quantity:qtys[(di+i)%4],scalev_fee:2000,payment_fee:1500,time:new Date(`${date}T${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}:00+07:00`).toISOString()});
+      result.push({order_id:`${date.replace(/-/g,'').slice(2)}${String(i).padStart(3,'0')}`,order_status:s[(di+i)%5],payment_status:'paid',customer_name:names[(di+i)%names.length],net_revenue:revs[(di+i)%4],quantity:qtys[(di+i)%4],scalev_fee:2000,payment_fee:1500,time:new Date(`${date}T${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}:00+07:00`).toISOString()});
     }
   });
   return result;
