@@ -581,6 +581,48 @@
     margin-left: 6px;
   }
 
+  /* ─── DATE RANGE BAR ─── */
+  .date-range-bar {
+    display: flex; gap: 6px;
+    padding: 8px 20px 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .date-range-bar::-webkit-scrollbar { height: 0; }
+  .dr-btn {
+    flex-shrink: 0; white-space: nowrap;
+    padding: 5px 14px; border-radius: 20px; border: none;
+    background: var(--fill); color: var(--label2);
+    font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all .15s; touch-action: manipulation;
+  }
+  .dr-btn:hover { background: var(--fill2); color: var(--label); }
+  .dr-btn.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(0,122,255,0.3); }
+
+  .dr-picker {
+    padding: 8px 20px 10px;
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--separator);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dr-picker input[type="month"] {
+    background: var(--surface); border: 0.5px solid var(--separator);
+    border-radius: 12px; padding: 6px 12px; font-size: 0.83rem;
+    font-family: inherit; color: var(--label); cursor: pointer;
+    outline: none; transition: all .15s;
+  }
+  .dr-picker input[type="month"]:focus { box-shadow: 0 0 0 3px rgba(0,122,255,0.18); border-color: var(--blue); }
+  .dr-year-nav { display: flex; align-items: center; gap: 10px; }
+  .dr-year-nav button {
+    background: var(--fill); border: none; border-radius: 10px;
+    width: 30px; height: 30px; font-size: 1rem; cursor: pointer;
+    font-family: inherit; display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation; transition: all .15s;
+  }
+  .dr-year-nav button:hover { background: var(--fill2); }
+  .dr-year-nav .yr-label { font-size: 0.9rem; font-weight: 700; color: var(--label); min-width: 48px; text-align: center; }
+
   /* ─── MOBILE RESPONSIVE ─── */
 
   /* fast tap — no 300ms delay */
@@ -617,6 +659,11 @@
   @media (max-width: 699px) {
     .hide-mobile { display: none !important; }
     .tip { display: none; }
+
+    /* ── Date range bar ── */
+    .date-range-bar { padding: 6px 12px 8px; gap: 5px; }
+    .dr-btn { padding: 4px 11px; font-size: 0.70rem; }
+    .dr-picker { padding: 6px 12px 8px; }
 
     /* ── Navbar ── */
     .navbar { padding: 0 12px; gap: 6px; height: 48px; }
@@ -896,6 +943,24 @@
   </div>
 </div>
 
+<!-- Date range bar -->
+<div class="date-range-bar" id="date-range-bar">
+  <button class="dr-btn active" onclick="setDateRange('today',this)">Hari Ini</button>
+  <button class="dr-btn" onclick="setDateRange('yesterday',this)">Kemarin</button>
+  <button class="dr-btn" onclick="setDateRange('last7',this)">7 Hari</button>
+  <button class="dr-btn" onclick="setDateRange('thismonth',this)">Bulan Ini</button>
+  <button class="dr-btn" onclick="setDateRange('monthly',this)">Bulanan ▾</button>
+  <button class="dr-btn" onclick="setDateRange('yearly',this)">Tahunan ▾</button>
+</div>
+<div class="dr-picker" id="dr-picker" style="display:none">
+  <input type="month" id="dr-month-input" style="display:none" oninput="onMonthPick(this.value)">
+  <div class="dr-year-nav" id="dr-year-nav" style="display:none">
+    <button onclick="changeYear(-1)">‹</button>
+    <span class="yr-label" id="dr-year-val">2025</span>
+    <button onclick="changeYear(1)">›</button>
+  </div>
+</div>
+
 <!-- Main -->
 <main class="main" id="dashboard">
 
@@ -904,7 +969,7 @@
   <!-- Page header -->
   <div class="page-header anim-1">
     <div class="page-header-left">
-      <div class="page-big-title">Dashboard Hari Ini</div>
+      <div class="page-big-title" id="page-title">Dashboard Hari Ini</div>
       <div class="page-date-chip" id="page-date-chip">📅 —</div>
     </div>
   </div>
@@ -976,6 +1041,19 @@
           <div id="stacked-bar-wrap">
             <div class="state-box" style="padding:14px"><span class="spinner"></span></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Daily Profit Chart — multi-day only -->
+      <div class="ios-card" id="daily-profit-section" style="margin-bottom:12px;display:none">
+        <div class="ios-card-header">
+          <div class="ios-card-title">
+            <div class="ios-card-title-icon" style="background:rgba(52,199,89,0.1)">📈</div>
+            Profit Harian
+          </div>
+        </div>
+        <div class="ios-card-body">
+          <div class="chart-wrap"><canvas id="chart-daily-profit"></canvas></div>
         </div>
       </div>
 
@@ -1102,7 +1180,7 @@
         <div class="ios-card-header">
           <div class="ios-card-title">
             <div class="ios-card-title-icon" style="background:rgba(52,199,89,0.1)">🛒</div>
-            Order Hari Ini
+            <span id="order-feed-title">Order Hari Ini</span>
           </div>
           <span id="scalev-error"></span>
         </div>
@@ -1142,10 +1220,11 @@ function saveConfig(patch) {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 const state = {
-  campaigns:[], orders:[], metrics:null,
+  campaigns:[], orders:[], metrics:null, dailyData:[],
   loading:false, metaError:null, scalevError:null,
   roasAlertFired:false, sortCol:'spend', sortDir:'desc',
   campaignFilter:'all', charts:{},
+  dateRange:'today', customMonth:null, customYear:null,
 };
 
 // ─── FORMAT ───────────────────────────────────────────────────────────────────
@@ -1156,13 +1235,54 @@ const pct = (n,d=1) => (n==null||isNaN(n)) ? '—' : n.toFixed(d)+'%';
 const formatRoas = n => (n==null||isNaN(n)) ? '—' : n.toFixed(2)+'x';
 const todayStr = () => new Date().toISOString().slice(0,10);
 
-function wibTodayUTC() {
-  const now = new Date();
-  const todayWib = new Date(now.toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'}));
+// Get today as 'YYYY-MM-DD' in WIB
+function todayWib() {
+  return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+}
+
+// Offset today's WIB date by n days, return 'YYYY-MM-DD'
+function offsetWib(n) {
+  const d=new Date(todayWib()); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10);
+}
+
+// Convert WIB date range strings → UTC ISO timestamps for Scalev API
+function wibRangeUTC(sinceWib, untilWib) {
+  const s=new Date(sinceWib), u=new Date(untilWib);
   return {
-    since: new Date(todayWib.getTime()-7*3600000).toISOString().replace('.000Z','Z'),
-    until: new Date(todayWib.getTime()+17*3600000-1000).toISOString().replace('.000Z','Z'),
+    since: new Date(s.getTime()-7*3600000).toISOString().replace('.000Z','Z'),
+    until: new Date(u.getTime()+17*3600000-1000).toISOString().replace('.000Z','Z'),
   };
+}
+
+// Build all dates in a range as array of 'YYYY-MM-DD'
+function getDaysInRange(since, until) {
+  const days=[]; const cur=new Date(since); const end=new Date(until);
+  while(cur<=end){days.push(cur.toISOString().slice(0,10));cur.setUTCDate(cur.getUTCDate()+1);}
+  return days;
+}
+
+// Get current date range object from state
+function getDateRange() {
+  const today=todayWib();
+  switch(state.dateRange) {
+    case 'yesterday': { const y=offsetWib(-1); return {since:y,until:y,label:'Kemarin',multi:false}; }
+    case 'last7':     return {since:offsetWib(-6),until:today,label:'7 Hari Terakhir',multi:true};
+    case 'thismonth': return {since:today.slice(0,7)+'-01',until:today,label:'Bulan Ini',multi:true};
+    case 'monthly': {
+      const ym=state.customMonth||today.slice(0,7);
+      const [y,m]=ym.split('-').map(Number);
+      const last=new Date(y,m,0).getDate();
+      const until=`${ym}-${String(last).padStart(2,'0')}`>today?today:`${ym}-${String(last).padStart(2,'0')}`;
+      const lbl=new Date(`${ym}-01T12:00:00Z`).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+      return {since:`${ym}-01`,until,label:lbl,multi:true};
+    }
+    case 'yearly': {
+      const yr=state.customYear||new Date().getFullYear();
+      const until=`${yr}-12-31`>today?today:`${yr}-12-31`;
+      return {since:`${yr}-01-01`,until,label:`Tahun ${yr}`,multi:true};
+    }
+    default: return {since:today,until:today,label:'Hari Ini',multi:false};
+  }
 }
 
 // ─── META ADS ─────────────────────────────────────────────────────────────────
@@ -1170,8 +1290,10 @@ function wibTodayUTC() {
 async function fetchMetaAds(cfg) {
   if (!cfg.metaToken||!cfg.metaAccountId) throw new Error('Meta Ads credentials not configured');
   const id = cfg.metaAccountId.replace(/^act_/,'');
+  const dr = getDateRange();
+  const tr = JSON.stringify({since:dr.since,until:dr.until});
   const [insR, stR] = await Promise.all([
-    fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'campaign_name,campaign_id,spend,impressions,clicks,ctr,cpm,reach,actions,cost_per_action_type',date_preset:'today',level:'campaign',access_token:cfg.metaToken,limit:200})}`),
+    fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'campaign_name,campaign_id,spend,impressions,clicks,ctr,cpm,reach,actions,cost_per_action_type',time_range:tr,level:'campaign',access_token:cfg.metaToken,limit:200})}`),
     fetch(`https://graph.facebook.com/v19.0/act_${id}/campaigns?${new URLSearchParams({fields:'id,name,effective_status',access_token:cfg.metaToken,limit:200})}`),
   ]);
   if (!insR.ok) { const e=await insR.json().catch(()=>({})); throw new Error(e?.error?.message||`Meta ${insR.status}`); }
@@ -1195,7 +1317,8 @@ function xAction(a,t){ if(!Array.isArray(a)) return 0; const x=a.find(v=>v.actio
 async function fetchScalev(cfg) {
   if (!cfg.scalevKey||!cfg.scalevBaseUrl) throw new Error('Scalev credentials not configured');
   const base=cfg.scalevBaseUrl.replace(/\/$/,'');
-  const {since,until}=wibTodayUTC();
+  const dr=getDateRange();
+  const {since,until}=wibRangeUTC(dr.since,dr.until);
   const hdrs={'Authorization':`Bearer ${cfg.scalevKey}`,'Accept':'application/json'};
   const all=[]; let cur=null,pg=0;
   do {
@@ -1212,6 +1335,43 @@ async function fetchScalev(cfg) {
     scalev_fee:parseFloat(o.scalev_fee||0), payment_fee:parseFloat(o.payment_fee||0),
     time:o.pending_time||o.draft_time||o.confirmed_time||null,
   }));
+}
+
+// Daily Meta spend: returns { 'YYYY-MM-DD': spend } for multi-day ranges
+async function fetchMetaDailyData(cfg) {
+  const dr=getDateRange(); if(!dr.multi) return {};
+  if(!cfg.metaToken||!cfg.metaAccountId) return {};
+  const id=cfg.metaAccountId.replace(/^act_/,'');
+  try {
+    const r=await fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'spend',time_range:JSON.stringify({since:dr.since,until:dr.until}),time_increment:1,level:'account',access_token:cfg.metaToken})}`);
+    const d=await r.json(); if(d.error) return {};
+    const result={}; (d.data||[]).forEach(day=>{result[day.date_start]=parseFloat(day.spend||0);}); return result;
+  } catch{return {};}
+}
+
+// Build per-day data: aggregate Scalev orders + Meta daily spend
+function buildDailyData(orders,metaDailySpend,cfg) {
+  const dr=getDateRange(); if(!dr.multi) return [];
+  const dates=getDaysInRange(dr.since,dr.until);
+  // Group orders by WIB date
+  const byDate={};
+  orders.forEach(o=>{
+    if(!o.time) return;
+    const wibDate=new Date(o.time).toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+    if(!byDate[wibDate]) byDate[wibDate]=[];
+    byDate[wibDate].push(o);
+  });
+  return dates.map(date=>{
+    const dayOrders=byDate[date]||[];
+    const revenue=dayOrders.reduce((s,o)=>s+o.net_revenue,0);
+    const units=dayOrders.reduce((s,o)=>s+o.quantity,0);
+    const cnt=dayOrders.length;
+    const hpp=units*cfg.hppPerUnit, pkg=cnt*cfg.packagingPerOrder;
+    const sf=dayOrders.reduce((s,o)=>s+o.scalev_fee+o.payment_fee,0);
+    const spend=metaDailySpend[date]||0;
+    const gross=revenue-hpp-pkg-sf, net=gross-spend;
+    return {date,revenue,spend,gross,net,orders:cnt,units};
+  });
 }
 
 // ─── METRICS ──────────────────────────────────────────────────────────────────
@@ -1262,8 +1422,18 @@ function renderCards(m, cfg) {
   set('stat-fee',rupiah(m.scalev_fee_total+m.payment_fee_total));
   set('stat-gross2',rupiah(m.gross_profit));
 
+  const dr=getDateRange();
+  const pt=document.getElementById('page-title');
+  if(pt) pt.textContent='Dashboard '+dr.label;
   const dc=document.getElementById('page-date-chip');
-  if(dc) dc.textContent='📅 '+new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(dc){
+    if(!dr.multi){
+      dc.textContent='📅 '+new Date(dr.since+'T12:00:00Z').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    } else {
+      const fmt=d=>new Date(d+'T12:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:dr.dateRange==='yearly'?'numeric':undefined});
+      dc.textContent=`📅 ${fmt(dr.since)} – ${fmt(dr.until)}`;
+    }
+  }
 }
 
 function animVal(id, target, fmt) {
@@ -1377,11 +1547,77 @@ function renderCharts(m) {
 
 function trunc(s,n){return s.length>n?s.slice(0,n)+'…':s;}
 
+// ─── DAILY PROFIT CHART ───────────────────────────────────────────────────────
+
+function renderDailyProfitChart() {
+  const section=document.getElementById('daily-profit-section');
+  const dr=getDateRange();
+  const data=state.dailyData;
+  if(!data.length||!dr.multi){if(section)section.style.display='none'; dChart('dailyprofit'); return;}
+  if(section) section.style.display='';
+
+  const mob=window.innerWidth<=699;
+  const barOpts=mob?{maintainAspectRatio:false}:{maintainAspectRatio:true,aspectRatio:2.2};
+  const maxTicks=mob?7:20;
+
+  // Label format based on range
+  const labelFmt=date=>{
+    const d=new Date(date+'T12:00:00Z');
+    if(state.dateRange==='yearly') return d.toLocaleDateString('id-ID',{month:'short'});
+    if(state.dateRange==='thismonth'||state.dateRange==='monthly') return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+    return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  };
+
+  // For yearly, group by month
+  let labels, profitData, revenueData, spendData;
+  if(state.dateRange==='yearly') {
+    const byMonth={};
+    data.forEach(d=>{
+      const ym=d.date.slice(0,7);
+      if(!byMonth[ym]) byMonth[ym]={revenue:0,spend:0,gross:0,net:0,orders:0};
+      byMonth[ym].revenue+=d.revenue; byMonth[ym].spend+=d.spend;
+      byMonth[ym].gross+=d.gross; byMonth[ym].net+=d.net; byMonth[ym].orders+=d.orders;
+    });
+    const months=Object.keys(byMonth).sort();
+    labels=months.map(ym=>new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
+    profitData=months.map(ym=>byMonth[ym].net);
+    revenueData=months.map(ym=>byMonth[ym].revenue);
+    spendData=months.map(ym=>byMonth[ym].spend);
+  } else {
+    labels=data.map(d=>labelFmt(d.date));
+    profitData=data.map(d=>d.net);
+    revenueData=data.map(d=>d.revenue);
+    spendData=data.map(d=>d.spend);
+  }
+
+  dChart('dailyprofit');
+  state.charts.dailyprofit=new Chart(document.getElementById('chart-daily-profit'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'bar',label:'Net Profit',data:profitData,backgroundColor:profitData.map(v=>v>=0?'rgba(52,199,89,0.65)':'rgba(255,59,48,0.55)'),borderRadius:5,yAxisID:'y'},
+      {type:'line',label:'Revenue',data:revenueData,borderColor:'#007AFF',backgroundColor:'rgba(0,122,255,0.05)',pointBackgroundColor:'#007AFF',pointRadius:mob?2:3,tension:0.3,yAxisID:'y',fill:true},
+      {type:'line',label:'Ad Spend',data:spendData,borderColor:'#FF9500',backgroundColor:'transparent',pointBackgroundColor:'#FF9500',pointRadius:mob?2:3,tension:0.3,borderDash:[4,3],yAxisID:'y'},
+    ]},
+    options:{...CD,...barOpts,
+      plugins:{...CD.plugins,
+        tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>`${ctx.dataset.label}: ${rupiahShort(ctx.raw)}`}},
+      },
+      scales:{
+        x:{...CD.scales.x,ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?8:10},maxRotation:mob?45:0,maxTicksLimit:maxTicks}},
+        y:{...CD.scales.y,ticks:{color:'rgba(60,60,67,0.4)',font:{size:mob?9:10},callback:rupiahShort}},
+      },
+    },
+  });
+}
+
 // ─── ORDER FEED ───────────────────────────────────────────────────────────────
 
 function renderOrderFeed() {
   const w=document.getElementById('order-feed-wrap');
-  if(!state.orders.length){w.innerHTML='<div class="state-box"><span>Belum ada order hari ini</span></div>';return;}
+  const dr=getDateRange();
+  const ft=document.getElementById('order-feed-title');
+  if(ft) ft.textContent=`Order ${dr.label}`;
+  if(!state.orders.length){w.innerHTML=`<div class="state-box"><span>Belum ada order untuk ${dr.label}</span></div>`;return;}
   const sorted=[...state.orders].sort((a,b)=>{if(!a.time)return 1;if(!b.time)return-1;return new Date(b.time)-new Date(a.time);});
   w.innerHTML=`<div class="order-feed">${sorted.map(o=>{
     const s=(o.order_status||'').toLowerCase();
@@ -1411,19 +1647,27 @@ function checkRoasAlert(roas,thr){
 // ─── REFRESH ──────────────────────────────────────────────────────────────────
 
 async function refreshData(){
-  if(state.loading) return;
-  state.loading=true; setLoading(true);
+  if(state.loading){state._pendingRefresh=true;return;}
+  state.loading=true; state._pendingRefresh=false; setLoading(true);
   const cfg=loadConfig();
-  const [mr,sr]=await Promise.allSettled([fetchMetaAds(cfg),fetchScalev(cfg)]);
+  const dr=getDateRange();
+  const [mr,sr,dr2]=await Promise.allSettled([
+    fetchMetaAds(cfg),
+    fetchScalev(cfg),
+    dr.multi?fetchMetaDailyData(cfg):Promise.resolve({}),
+  ]);
   if(mr.status==='fulfilled'){state.campaigns=mr.value;state.metaError=null;}
   else{state.metaError=mr.reason?.message||'Unknown';if(!state.campaigns.length)state.campaigns=mockCampaigns();}
   if(sr.status==='fulfilled'){state.orders=sr.value;state.scalevError=null;}
-  else{state.scalevError=sr.reason?.message||'Unknown';if(!state.orders.length)state.orders=mockOrders();}
+  else{state.scalevError=sr.reason?.message||'Unknown';if(!state.orders.length)state.orders=mockOrders(dr);}
+  const metaDaily=dr2.status==='fulfilled'?dr2.value:{};
+  state.dailyData=buildDailyData(state.orders,metaDaily,cfg);
   state.metrics=calculateMetrics(state.orders,state.campaigns,cfg);
   renderCards(state.metrics,cfg);
   renderStackedBar(state.metrics);
   renderCampaignTable();
   renderCharts(state.metrics);
+  renderDailyProfitChart();
   renderOrderFeed();
   checkRoasAlert(state.metrics.roas,cfg.roasThreshold);
   updateStatus();
@@ -1433,13 +1677,60 @@ async function refreshData(){
 
 // ─── MOCK ─────────────────────────────────────────────────────────────────────
 
-function mockCampaigns(){return[
-  {campaign_id:'1',campaign_name:'Bantal Leher — Retargeting',status:'ACTIVE',spend:350000,impressions:42000,clicks:820,ctr:1.95,cpm:8333,reach:38000,purchases:12,cpp:29167},
-  {campaign_id:'2',campaign_name:'Bantal Leher — Lookalike 1%',status:'ACTIVE',spend:280000,impressions:55000,clicks:650,ctr:1.18,cpm:5091,reach:50000,purchases:7,cpp:40000},
-  {campaign_id:'3',campaign_name:'Bantal Leher — Interest Health',status:'PAUSED',spend:120000,impressions:18000,clicks:210,ctr:1.17,cpm:6667,reach:16000,purchases:3,cpp:40000},
-  {campaign_id:'4',campaign_name:'Bantal Leher — Broad TEST',status:'ACTIVE',spend:95000,impressions:30000,clicks:290,ctr:0.97,cpm:3167,reach:28000,purchases:0,cpp:0},
-];}
-function mockOrders(){const s=['pending','confirmed','pending','confirmed','confirmed'];return Array.from({length:22},(_,i)=>({order_id:`ORD-${1000+i}`,order_status:s[i%s.length],payment_status:'paid',net_revenue:[89000,178000,89000,267000][i%4],quantity:[1,2,1,3][i%4],scalev_fee:2000,payment_fee:1500,time:new Date(Date.now()-i*18*60000).toISOString()}));}
+function mockCampaigns(){
+  const dr=getDateRange(),days=dr.multi?getDaysInRange(dr.since,dr.until).length:1,mul=Math.max(1,days);
+  return[
+    {campaign_id:'1',campaign_name:'BID 70RB #ONE SET - 8',status:'ACTIVE',spend:350000*mul,impressions:42000*mul,clicks:820*mul,ctr:1.95,cpm:8333,reach:38000*mul,purchases:12*mul,cpp:29167},
+    {campaign_id:'2',campaign_name:'BID 70RB #ONE SET - 8 - Salin',status:'PAUSED',spend:280000*mul,impressions:55000*mul,clicks:650*mul,ctr:1.18,cpm:5091,reach:50000*mul,purchases:7*mul,cpp:40000},
+    {campaign_id:'3',campaign_name:'BID 70RB #ONE SET - 5',status:'PAUSED',spend:0,impressions:18000,clicks:210,ctr:1.17,cpm:6667,reach:16000,purchases:3,cpp:40000},
+    {campaign_id:'4',campaign_name:'BID 70RB #ONE SET - 3',status:'PAUSED',spend:0,impressions:30000,clicks:290,ctr:0.97,cpm:3167,reach:28000,purchases:0,cpp:0},
+  ];
+}
+function mockOrders(dr){
+  dr=dr||getDateRange();
+  const days=dr.multi?getDaysInRange(dr.since,dr.until):[dr.since];
+  const s=['pending','confirmed','pending','confirmed','confirmed'];
+  const revs=[89000,178000,89000,267000]; const qtys=[1,2,1,3];
+  const result=[];
+  days.forEach((date,di)=>{
+    const cnt=dr.multi?Math.floor(5+Math.random()*15):22;
+    for(let i=0;i<cnt;i++){
+      const hr=7+Math.floor(Math.random()*14), mn=Math.floor(Math.random()*60);
+      result.push({order_id:`${date.replace(/-/g,'').slice(2)}${String(i).padStart(3,'0')}`,order_status:s[(di+i)%5],payment_status:'paid',net_revenue:revs[(di+i)%4],quantity:qtys[(di+i)%4],scalev_fee:2000,payment_fee:1500,time:new Date(`${date}T${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}:00+07:00`).toISOString()});
+    }
+  });
+  return result;
+}
+
+// ─── DATE RANGE SELECTOR ──────────────────────────────────────────────────────
+
+function setDateRange(range, btn) {
+  state.dateRange=range;
+  document.querySelectorAll('.dr-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const picker=document.getElementById('dr-picker');
+  const monthInput=document.getElementById('dr-month-input');
+  const yearNav=document.getElementById('dr-year-nav');
+  if(range==='monthly'){
+    picker.style.display='';
+    monthInput.style.display='';
+    yearNav.style.display='none';
+    if(!state.customMonth) state.customMonth=todayWib().slice(0,7);
+    monthInput.value=state.customMonth;
+  } else if(range==='yearly'){
+    picker.style.display='';
+    monthInput.style.display='none';
+    yearNav.style.display='';
+    if(!state.customYear) state.customYear=new Date().getFullYear();
+    document.getElementById('dr-year-val').textContent=state.customYear;
+  } else {
+    picker.style.display='none';
+  }
+  refreshData();
+}
+
+function onMonthPick(val){if(val){state.customMonth=val;refreshData();}}
+function changeYear(delta){state.customYear=(state.customYear||new Date().getFullYear())+delta;document.getElementById('dr-year-val').textContent=state.customYear;refreshData();}
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────
 
