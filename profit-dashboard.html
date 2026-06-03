@@ -2302,21 +2302,33 @@ function renderDrpFooter(){
   const btn=document.getElementById('drp-apply-btn');
   if(!pkr.start){ if(lbl) lbl.innerHTML='Pilih tanggal mulai'; if(btn) btn.disabled=true; return; }
   const fmtD=ds=>new Date(ds+'T12:00:00Z').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
-  if(pkr.phase===1){
-    const previewEnd=pkr.hover||(pkr.end||pkr.start);
-    const s=pkr.start<=previewEnd?pkr.start:previewEnd, e=pkr.start<=previewEnd?previewEnd:pkr.start;
+  if(pkr.phase===1 && pkr.hover && pkr.hover!==pkr.start){
+    // Hovering a second date — show preview range, Apply still enabled
+    const s=pkr.start<=pkr.hover?pkr.start:pkr.hover, e=pkr.start<=pkr.hover?pkr.hover:pkr.start;
     if(lbl) lbl.innerHTML=`<strong>${fmtD(s)}</strong> – <strong>${fmtD(e)}</strong>`;
-    if(btn) btn.disabled=true;
+  } else if(pkr.phase===1){
+    // First date picked, no hover yet — single date ready to apply
+    if(lbl) lbl.innerHTML=`<strong>${fmtD(pkr.start)}</strong>`;
   } else {
     const until=pkr.end||pkr.start;
     if(lbl) lbl.innerHTML=pkr.end?`<strong>${fmtD(pkr.start)}</strong> – <strong>${fmtD(pkr.end)}</strong>`:`<strong>${fmtD(pkr.start)}</strong>`;
-    if(btn) btn.disabled=false;
   }
+  // Apply is enabled as soon as start is set — single date or range both work
+  if(btn) btn.disabled=false;
 }
 
 function applyPicker(){
   if(!pkr.start) return;
-  const since=pkr.start, until=pkr.end||pkr.start;
+  let since, until;
+  if(pkr.phase===1 && pkr.hover && pkr.hover!==pkr.start){
+    // User clicked start then Apply while hovering over another date → use hover as end
+    since = pkr.start<=pkr.hover ? pkr.start : pkr.hover;
+    until = pkr.start<=pkr.hover ? pkr.hover : pkr.start;
+  } else {
+    since = pkr.start;
+    until = pkr.end||pkr.start;
+  }
+  pkr.phase=0;
   // map to preset id if possible
   let matched=null;
   for(const p of PRESETS){ const r=presetRange(p.id); if(r&&r.since===since&&r.until===until){matched=p.id;break;} }
