@@ -1395,7 +1395,7 @@ function saveConfig(patch) {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 const state = {
-  campaigns:[], orders:[], metrics:null, dailyData:[],
+  campaigns:[], orders:[], metrics:null, dailyData:[], chartData:[],
   loading:false, metaError:null, scalevError:null,
   roasAlertFired:false, sortCol:'spend', sortDir:'desc',
   campaignFilter:'all', charts:{},
@@ -1456,6 +1456,15 @@ function getDateRange() {
   return {since:today,until:today,label:'Hari Ini',multi:false};
 }
 
+// Chart always shows >= 30 days; for short ranges extend backward from dr.until
+function getChartRange(dr) {
+  const n = getDaysInRange(dr.since, dr.until).length;
+  if (n >= 30) return { since:dr.since, until:dr.until, extended:false };
+  const end = new Date(dr.until + 'T12:00:00Z');
+  const start = new Date(end); start.setUTCDate(start.getUTCDate() - 29);
+  return { since:start.toISOString().slice(0,10), until:dr.until, extended:true };
+}
+
 // ─── META ADS ─────────────────────────────────────────────────────────────────
 
 async function fetchMetaAds(cfg) {
@@ -1508,22 +1517,43 @@ async function fetchScalev(cfg) {
   }));
 }
 
-// Daily Meta spend: returns { 'YYYY-MM-DD': spend } for multi-day ranges
-async function fetchMetaDailyData(cfg) {
-  const dr=getDateRange(); if(!dr.multi) return {};
+// Daily Meta spend: returns { 'YYYY-MM-DD': spend } for a given date range
+async function fetchMetaDailyData(cfg, since, until) {
   if(!cfg.metaToken||!cfg.metaAccountId) return {};
   const id=cfg.metaAccountId.replace(/^act_/,'');
   try {
-    const r=await fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'spend',time_range:JSON.stringify({since:dr.since,until:dr.until}),time_increment:1,level:'account',access_token:cfg.metaToken})}`);
+    const r=await fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'spend',time_range:JSON.stringify({since,until}),time_increment:1,level:'account',access_token:cfg.metaToken})}`);
     const d=await r.json(); if(d.error) return {};
     const result={}; (d.data||[]).forEach(day=>{result[day.date_start]=parseFloat(day.spend||0);}); return result;
   } catch{return {};}
 }
 
-// Build per-day data: aggregate Scalev orders + Meta daily spend
-function buildDailyData(orders,metaDailySpend,cfg) {
-  const dr=getDateRange(); if(!dr.multi) return [];
-  const dates=getDaysInRange(dr.since,dr.until);
+// Fetch Scalev orders for an explicit WIB date range (used for chart context window)
+async function fetchScalevRange(cfg, since, until) {
+  if(!cfg.scalevKey||!cfg.scalevBaseUrl) return [];
+  const base=cfg.scalevBaseUrl.replace(/\/$/,'');
+  const {since:utcS,until:utcU}=wibRangeUTC(since,until);
+  const hdrs={'Authorization':`Bearer ${cfg.scalevKey}`,'Accept':'application/json'};
+  const all=[]; let cur=null,pg=0;
+  try {
+    do {
+      const p=new URLSearchParams({page_size:25,draft_time_since:utcS,draft_time_until:utcU,columns:'net_revenue,shipping_cost,final_variants,total_quantity'});
+      if(cur) p.set('next_cursor',cur);
+      const r=await fetch(`${base}/v3/orders?${p}`,{headers:hdrs});
+      if(!r.ok) return [];
+      const d=await r.json(); all.push(...(d.data||[])); cur=d.has_next?d.next_cursor:null; if(++pg>40) break;
+    } while(cur);
+    return all.map(o=>({order_id:o.order_id||o.id||'—',order_status:o.status||'unknown',payment_status:o.payment_status||'unknown',net_revenue:parseFloat(o.net_revenue||0),quantity:parseInt(o.total_quantity||1),scalev_fee:parseFloat(o.scalev_fee||0),payment_fee:parseFloat(o.payment_fee||0),time:o.pending_time||o.draft_time||o.confirmed_time||null}));
+  } catch{return [];}
+}
+
+// Build per-day data: aggregate Scalev orders + Meta daily spend for an explicit date range
+function buildDailyData(orders, metaDailySpend, cfg, since, until) {
+  if(!since||!until) {
+    const dr=getDateRange(); if(!dr.multi) return [];
+    since=dr.since; until=dr.until;
+  }
+  const dates=getDaysInRange(since,until);
   // Group orders by WIB date
   const byDate={};
   orders.forEach(o=>{
@@ -1717,7 +1747,9 @@ function renderMonitorSection() {
   const loading = document.getElementById('monitor-loading');
   const trendEl = document.getElementById('monitor-trend');
   const dr      = getDateRange();
-  const data    = state.dailyData;
+  const cr      = getChartRange(dr);
+  // Use chartData (always >= 30 days) for chart rendering
+  const data    = (state.chartData && state.chartData.length) ? state.chartData : state.dailyData;
 
   if (loading) loading.style.display = 'none';
   if (trendEl) trendEl.style.display = '';
@@ -1728,23 +1760,18 @@ function renderMonitorSection() {
   }
 
   /* ── Build chart data ── */
-  /* Single-day: one bar from metrics */
-  let labels, profitData, spendData;
+  let labels, profitData, spendData, inRangeFlags;
 
   const mob = window.innerWidth <= 699;
-  const today = todayWib();
 
-  if (!dr.multi) {
-    /* ── Single-day: one bar from metrics ── */
-    const m = state.metrics;
-    const day = dr.since;
-    labels     = [String(parseInt(day.slice(8), 10))];
-    profitData = [m ? m.net_profit  : 0];
-    spendData  = [m ? m.ad_spend    : 0];
-  } else if (state.dateRange === 'thisyear' ||
+  // Helper: is a given date within the user's selected range?
+  const isInRange = date => date >= dr.since && date <= dr.until;
+
+  if (state.dateRange === 'thisyear' ||
     (state.dateRange === 'custom' && state.customSince &&
      (new Date(state.customUntil||state.customSince) - new Date(state.customSince)) > 60*24*3600*1000)) {
-    /* ── Yearly: group by month ── */
+    /* ── > 60-day custom or thisyear: group by month ── */
+    if (!data.length) { dChart('dailyprofit'); return; }
     const byMonth = {};
     data.forEach(d => {
       const ym = d.date.slice(0,7);
@@ -1752,27 +1779,44 @@ function renderMonitorSection() {
       byMonth[ym].spend += d.spend; byMonth[ym].net += d.net;
     });
     const months = Object.keys(byMonth).sort();
-    labels     = months.map(ym => new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short'}));
-    profitData = months.map(ym => byMonth[ym].net);
-    spendData  = months.map(ym => byMonth[ym].spend);
+    labels       = months.map(ym => new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short'}));
+    profitData   = months.map(ym => byMonth[ym].net);
+    spendData    = months.map(ym => byMonth[ym].spend);
+    inRangeFlags = months.map(() => true); // all in-range for long periods
   } else {
-    /* ── Multi-day: day number labels ── */
+    /* ── Daily bars: use chartData (>= 30 days) ── */
     if (!data.length) { dChart('dailyprofit'); return; }
-    labels     = data.map(d => String(parseInt(d.date.slice(8),10)));
-    profitData = data.map(d => d.net);
-    spendData  = data.map(d => d.spend);
+    labels       = data.map(d => String(parseInt(d.date.slice(8),10)));
+    profitData   = data.map(d => d.net);
+    spendData    = data.map(d => d.spend);
+    inRangeFlags = data.map(d => isInRange(d.date));
   }
 
-  const lastIdx = profitData.length - 1;
-  const isSingle = !dr.multi;
+  // The "last bar in selected range" gets the solid blue highlight
+  // (not the last bar in the 30-day context window)
+  let lastRangeIdx = -1;
+  if (data.length) {
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (!data[i] || isInRange(data[i].date)) { lastRangeIdx = i; break; }
+    }
+    if (lastRangeIdx < 0) lastRangeIdx = profitData.length - 1;
+  } else {
+    lastRangeIdx = profitData.length - 1;
+  }
 
-  // Bar colors: last/single bar = solid blue, positive = light blue, negative = light red
+  // Bar colors:
+  //   • last bar in selected range  → solid blue (highlight)
+  //   • in-range positive           → normal light blue
+  //   • in-range negative           → normal light red
+  //   • context-window (out-of-range) positive → very faint blue
+  //   • context-window negative     → very faint red
   const barColors = profitData.map((v, i) => {
-    if (i === lastIdx) return 'rgba(0,122,255,0.88)';
-    return v >= 0 ? 'rgba(100,185,255,0.45)' : 'rgba(255,80,70,0.40)';
+    if (i === lastRangeIdx)   return 'rgba(0,122,255,0.88)';
+    if (inRangeFlags[i])      return v >= 0 ? 'rgba(100,185,255,0.45)' : 'rgba(255,80,70,0.40)';
+    return v >= 0 ? 'rgba(100,185,255,0.18)' : 'rgba(255,80,70,0.16)'; // dimmed context bars
   });
   const barBorders = profitData.map((v, i) =>
-    i === lastIdx ? 'rgba(0,100,220,0.9)' : 'transparent'
+    i === lastRangeIdx ? 'rgba(0,100,220,0.9)' : 'transparent'
   );
 
   dChart('dailyprofit');
@@ -1793,7 +1837,7 @@ function renderMonitorSection() {
           borderWidth: 1,
           borderRadius: 3,
           borderSkipped: false,
-          maxBarThickness: isSingle ? 72 : 36,
+          maxBarThickness: 36,
           yAxisID: 'y',
           order: 2,
         },
@@ -1803,7 +1847,7 @@ function renderMonitorSection() {
           data: spendData,
           borderColor: 'rgba(220,165,100,0.90)',
           backgroundColor: 'transparent',
-          pointBackgroundColor: spendData.map((v,i) => i===lastIdx ? 'rgba(220,140,60,1)' : 'rgba(220,165,100,0.85)'),
+          pointBackgroundColor: spendData.map((v,i) => i===lastRangeIdx ? 'rgba(220,140,60,1)' : 'rgba(220,165,100,0.85)'),
           pointRadius: mob ? 2.5 : 3.5,
           pointHoverRadius: mob ? 4 : 6,
           pointBorderWidth: 0,
@@ -1904,24 +1948,43 @@ function checkRoasAlert(roas,thr){
 async function refreshData(){
   if(state.loading){state._pendingRefresh=true;return;}
   state.loading=true; state._pendingRefresh=false; setLoading(true);
-  // show monitor spinner while loading
-  const mld=document.getElementById('monitor-loading');
-  const mtd=document.getElementById('monitor-trend');
-  if(mld){mld.style.display='';}
-  if(mtd){mtd.style.display='none';}
+  const mld=document.getElementById('monitor-loading'), mtd=document.getElementById('monitor-trend');
+  if(mld) mld.style.display=''; if(mtd) mtd.style.display='none';
+
   const cfg=loadConfig();
   const dr=getDateRange();
-  const [mr,sr,dr2]=await Promise.allSettled([
+  const cr=getChartRange(dr);         // chart range: always >= 30 days
+  const needChart=cr.extended;        // true when chart range wider than selected range
+
+  // Parallel: meta insights, scalev (selected), meta daily (selected),
+  //           + if extended: scalev (chart range), meta daily (chart range)
+  const [mr,sr,md,chartSr,chartMd]=await Promise.allSettled([
     fetchMetaAds(cfg),
     fetchScalev(cfg),
-    dr.multi?fetchMetaDailyData(cfg):Promise.resolve({}),
+    fetchMetaDailyData(cfg, dr.since, dr.until),
+    needChart ? fetchScalevRange(cfg, cr.since, cr.until) : Promise.resolve(null),
+    needChart ? fetchMetaDailyData(cfg, cr.since, cr.until) : Promise.resolve(null),
   ]);
+
+  // Metric data (selected range)
   if(mr.status==='fulfilled'){state.campaigns=mr.value;state.metaError=null;}
   else{state.metaError=mr.reason?.message||'Unknown';if(!state.campaigns.length)state.campaigns=mockCampaigns();}
   if(sr.status==='fulfilled'){state.orders=sr.value;state.scalevError=null;}
   else{state.scalevError=sr.reason?.message||'Unknown';if(!state.orders.length)state.orders=mockOrders(dr);}
-  const metaDaily=dr2.status==='fulfilled'?dr2.value:{};
-  state.dailyData=buildDailyData(state.orders,metaDaily,cfg);
+
+  const metaDaily=md.status==='fulfilled'?md.value:{};
+  state.dailyData=buildDailyData(state.orders,metaDaily,cfg,dr.since,dr.until);
+
+  // Chart data (extended 30-day window or same as metric)
+  if(needChart){
+    let chartOrders=chartSr.status==='fulfilled'?chartSr.value:null;
+    if(!chartOrders||!chartOrders.length) chartOrders=mockOrders({since:cr.since,until:cr.until,multi:true});
+    const chartMeta=chartMd.status==='fulfilled'?chartMd.value:{};
+    state.chartData=buildDailyData(chartOrders,chartMeta,cfg,cr.since,cr.until);
+  } else {
+    state.chartData=state.dailyData;
+  }
+
   state.metrics=calculateMetrics(state.orders,state.campaigns,cfg);
   renderCards(state.metrics,cfg);
   renderStackedBar(state.metrics);
@@ -1930,9 +1993,9 @@ async function refreshData(){
   renderDailyProfitChart();
   renderOrderFeed();
   checkRoasAlert(state.metrics.roas,cfg.roasThreshold);
-  updateStatus();
-  updateTime();
+  updateStatus(); updateTime();
   state.loading=false; setLoading(false);
+  if(state._pendingRefresh) refreshData();
 }
 
 // ─── MOCK ─────────────────────────────────────────────────────────────────────
