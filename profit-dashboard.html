@@ -938,7 +938,8 @@
     .chart-wrap { height: 160px; overflow: hidden; }
     /* donut uses its own aspectRatio so no fixed height needed */
     .chart-wrap-donut { height: auto; overflow: visible; max-height: 200px; }
-    .ios-card-body { overflow: hidden; }
+    /* monitor trend chart taller */
+    #monitor-trend .chart-wrap { height: 180px; overflow: hidden; }
 
     /* ── Cost Breakdown ── */
     .breakdown-bar { height: 18px; border-radius: 9px; }
@@ -1175,7 +1176,7 @@
 
       <!-- Multi-day trend chart -->
       <div id="monitor-trend" style="display:none">
-        <div class="chart-wrap" style="height:185px"><canvas id="chart-daily-profit"></canvas></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-daily-profit"></canvas></div>
       </div>
 
       <!-- Loading state -->
@@ -1778,35 +1779,40 @@ function renderMonitorSection() {
   }
 
   const mob = window.innerWidth <= 699;
-
-  /* Label per row */
-  const labelFmt = date => {
-    const d = new Date(date + 'T12:00:00Z');
-    if (state.dateRange === 'yearly')   return d.toLocaleDateString('id-ID', {month:'short'});
-    return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
-  };
+  const today = todayWib();
 
   /* For yearly: group by month */
-  let labels, profitData, revenueData, spendData;
-  if (state.dateRange === 'yearly') {
+  let labels, profitData, spendData, isYearly = false;
+  if (state.dateRange === 'thisyear' || (state.dateRange === 'custom' && state.customSince && (new Date(state.customUntil||state.customSince) - new Date(state.customSince)) > 60*24*3600*1000)) {
+    isYearly = true;
     const byMonth = {};
     data.forEach(d => {
       const ym = d.date.slice(0,7);
-      if (!byMonth[ym]) byMonth[ym] = {revenue:0,spend:0,gross:0,net:0};
-      byMonth[ym].revenue += d.revenue; byMonth[ym].spend  += d.spend;
-      byMonth[ym].gross   += d.gross;   byMonth[ym].net    += d.net;
+      if (!byMonth[ym]) byMonth[ym] = {spend:0,net:0};
+      byMonth[ym].spend += d.spend; byMonth[ym].net += d.net;
     });
     const months = Object.keys(byMonth).sort();
-    labels      = months.map(ym => new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
-    profitData  = months.map(ym => byMonth[ym].net);
-    revenueData = months.map(ym => byMonth[ym].revenue);
-    spendData   = months.map(ym => byMonth[ym].spend);
+    labels     = months.map(ym => new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short'}));
+    profitData = months.map(ym => byMonth[ym].net);
+    spendData  = months.map(ym => byMonth[ym].spend);
   } else {
-    labels      = data.map(d => labelFmt(d.date));
-    profitData  = data.map(d => d.net);
-    revenueData = data.map(d => d.revenue);
-    spendData   = data.map(d => d.spend);
+    // Just show day number as label (e.g. "5", "6", ..., "3")
+    labels     = data.map(d => String(parseInt(d.date.slice(8),10)));
+    profitData = data.map(d => d.net);
+    spendData  = data.map(d => d.spend);
   }
+
+  const lastIdx = data.length - 1;
+
+  // Bar colors: last bar = solid blue, positive = light blue, negative = light red
+  const barColors = profitData.map((v, i) => {
+    if (i === lastIdx) return 'rgba(0,122,255,0.88)';
+    return v >= 0 ? 'rgba(100,185,255,0.45)' : 'rgba(255,80,70,0.40)';
+  });
+  const barBorders = profitData.map((v, i) => {
+    if (i === lastIdx) return 'rgba(0,100,220,0.9)';
+    return 'transparent';
+  });
 
   dChart('dailyprofit');
   const canvas = document.getElementById('chart-daily-profit');
@@ -1818,35 +1824,77 @@ function renderMonitorSection() {
       labels,
       datasets: [
         {
-          type:'bar', label:'Net Profit', data:profitData,
-          backgroundColor: profitData.map(v => v >= 0 ? 'rgba(52,199,89,0.70)' : 'rgba(255,59,48,0.60)'),
-          borderRadius:5, yAxisID:'y',
+          type: 'bar',
+          label: 'Net Profit',
+          data: profitData,
+          backgroundColor: barColors,
+          borderColor: barBorders,
+          borderWidth: 1,
+          borderRadius: 3,
+          borderSkipped: false,
+          yAxisID: 'y',
+          order: 2,
         },
         {
-          type:'line', label:'Revenue', data:revenueData,
-          borderColor:'#007AFF', backgroundColor:'rgba(0,122,255,0.06)',
-          pointBackgroundColor:'#007AFF', pointRadius:mob?2:3,
-          tension:0.35, yAxisID:'y', fill:true,
-        },
-        {
-          type:'line', label:'Ad Spend', data:spendData,
-          borderColor:'#FF9500', backgroundColor:'transparent',
-          pointBackgroundColor:'#FF9500', pointRadius:mob?2:3,
-          tension:0.35, borderDash:[4,3], yAxisID:'y',
+          type: 'line',
+          label: 'Ad Spend',
+          data: spendData,
+          borderColor: 'rgba(220,165,100,0.90)',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: spendData.map((v,i) => i===lastIdx ? 'rgba(220,140,60,1)' : 'rgba(220,165,100,0.85)'),
+          pointRadius: mob ? 2.5 : 3.5,
+          pointHoverRadius: mob ? 4 : 6,
+          pointBorderWidth: 0,
+          borderWidth: 1.8,
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'y',
+          order: 1,
         },
       ],
     },
     options: {
-      ...CD,
+      responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
       plugins: {
-        ...CD.plugins,
-        legend: { labels: { color:'rgba(60,60,67,0.6)', font:{size:mob?9:11,weight:'500'}, boxWidth:10, padding:12 } },
-        tooltip: { ...CD.plugins.tooltip, callbacks: { label: ctx => `${ctx.dataset.label}: ${rupiahShort(ctx.raw)}` } },
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: 'rgba(60,60,67,0.55)',
+            font: { size: mob?9:11, weight:'500' },
+            boxWidth: 10, boxHeight: 10, padding: 14,
+            usePointStyle: true,
+          },
+        },
+        tooltip: {
+          ...CD.plugins.tooltip,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${rupiahShort(ctx.raw)}`,
+          },
+        },
       },
       scales: {
-        x: { ...CD.scales.x, ticks: { color:'rgba(60,60,67,0.4)', font:{size:mob?8:10}, maxRotation:mob?40:0, maxTicksLimit:mob?8:20 } },
-        y: { ...CD.scales.y, ticks: { color:'rgba(60,60,67,0.4)', font:{size:mob?9:10}, callback:rupiahShort } },
+        x: {
+          grid: {
+            color: 'rgba(0,0,0,0.05)',
+            drawTicks: false,
+          },
+          border: { display: false },
+          ticks: {
+            color: 'rgba(100,100,110,0.5)',
+            font: { size: mob ? 9 : 11 },
+            maxRotation: 0,
+            maxTicksLimit: mob ? 10 : 31,
+            padding: 4,
+          },
+        },
+        y: {
+          display: false,   // hide y-axis — clean look like screenshot
+          grid: { display: false },
+        },
       },
     },
   });
