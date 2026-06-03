@@ -1085,6 +1085,12 @@
         <label>Biaya Packaging per Order (Rp)</label>
         <input type="number" id="cfg-packaging" placeholder="1000" min="0">
       </div>
+      <div class="form-divider">Chart Iklan</div>
+      <div class="form-group">
+        <label>Tanggal Mulai Iklan</label>
+        <input type="date" id="cfg-ad-start-date" placeholder="YYYY-MM-DD">
+        <small style="color:var(--label3);font-size:0.72rem;margin-top:4px;display:block">Chart profit selalu tampil dari tanggal ini</small>
+      </div>
       <div class="form-divider">Alert</div>
       <div class="form-group">
         <label>ROAS Minimum Alert</label>
@@ -1380,6 +1386,7 @@ const DEFAULT_CONFIG = {
   hppPerUnit: 46000,
   packagingPerOrder: 1000,
   roasThreshold: 2.0,
+  adStartDate: '',   // YYYY-MM-DD — tanggal pertama iklan produk one set
 };
 
 function loadConfig() {
@@ -1458,6 +1465,17 @@ function getDateRange() {
 
 // Chart always shows >= 30 days; for short ranges extend backward from dr.until
 function getChartRange(dr) {
+  const cfg = loadConfig();
+  const adStart = cfg.adStartDate;
+
+  // If adStartDate is configured and falls before (or at) the selected range end,
+  // always show from that date — this covers the full campaign history
+  if (adStart && /^\d{4}-\d{2}-\d{2}$/.test(adStart) && adStart <= dr.until) {
+    const chartSince = adStart < dr.since ? adStart : dr.since;
+    return { since: chartSince, until: dr.until, extended: chartSince < dr.since };
+  }
+
+  // Default: extend backward to at least 30 days
   const n = getDaysInRange(dr.since, dr.until).length;
   if (n >= 30) return { since:dr.since, until:dr.until, extended:false };
   const end = new Date(dr.until + 'T12:00:00Z');
@@ -1767,10 +1785,29 @@ function renderMonitorSection() {
   // Helper: is a given date within the user's selected range?
   const isInRange = date => date >= dr.since && date <= dr.until;
 
-  if (state.dateRange === 'thisyear' ||
-    (state.dateRange === 'custom' && state.customSince &&
-     (new Date(state.customUntil||state.customSince) - new Date(state.customSince)) > 60*24*3600*1000)) {
-    /* ── > 60-day custom or thisyear: group by month ── */
+  // Full date labels for tooltip titles (format: "3 Jun 26")
+  let dateLabels = [];
+
+  // Helper: format a YYYY-MM-DD to "3 Jun 26"
+  const fmtTooltipDate = ds => new Date(ds+'T12:00:00Z')
+    .toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'});
+
+  // Helper: x-axis tick label — show "1 Jun" on month boundaries, otherwise just day number
+  const fmtAxisTick = (ds, i) => {
+    const dayNum = parseInt(ds.slice(8), 10);
+    if (dayNum === 1 || i === 0) {
+      const mon = new Date(ds+'T12:00:00Z').toLocaleDateString('id-ID',{month:'short'});
+      return i === 0 && dayNum !== 1 ? String(dayNum) : `1 ${mon}`;
+    }
+    return String(dayNum);
+  };
+
+  // Determine display mode: monthly grouping for long ranges
+  const totalDays = getDaysInRange(cr.since, cr.until).length;
+  const useMonthly = totalDays > 60 || state.dateRange === 'thisyear';
+
+  if (useMonthly) {
+    /* ── Monthly grouping for > 60 days or thisyear ── */
     if (!data.length) { dChart('dailyprofit'); return; }
     const byMonth = {};
     data.forEach(d => {
@@ -1780,13 +1817,18 @@ function renderMonitorSection() {
     });
     const months = Object.keys(byMonth).sort();
     labels       = months.map(ym => new Date(ym+'-15T12:00:00Z').toLocaleDateString('id-ID',{month:'short'}));
+    dateLabels   = months.map(ym => {
+      const d = new Date(ym+'-15T12:00:00Z');
+      return d.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+    });
     profitData   = months.map(ym => byMonth[ym].net);
     spendData    = months.map(ym => byMonth[ym].spend);
     inRangeFlags = months.map(() => true); // all in-range for long periods
   } else {
-    /* ── Daily bars: use chartData (>= 30 days) ── */
+    /* ── Daily bars: use chartData (>= 30 days or since adStartDate) ── */
     if (!data.length) { dChart('dailyprofit'); return; }
-    labels       = data.map(d => String(parseInt(d.date.slice(8),10)));
+    labels       = data.map((d, i) => fmtAxisTick(d.date, i));
+    dateLabels   = data.map(d => fmtTooltipDate(d.date));
     profitData   = data.map(d => d.net);
     spendData    = data.map(d => d.spend);
     inRangeFlags = data.map(d => isInRange(d.date));
@@ -1878,6 +1920,7 @@ function renderMonitorSection() {
         tooltip: {
           ...CD.plugins.tooltip,
           callbacks: {
+            title: items => dateLabels[items[0].dataIndex] || items[0].label,
             label: ctx => `${ctx.dataset.label}: ${rupiahShort(ctx.raw)}`,
           },
         },
@@ -1893,7 +1936,7 @@ function renderMonitorSection() {
             color: 'rgba(100,100,110,0.5)',
             font: { size: mob ? 9 : 11 },
             maxRotation: 0,
-            maxTicksLimit: mob ? 10 : 31,
+            maxTicksLimit: mob ? 8 : (useMonthly ? 12 : Math.min(totalDays, 31)),
             padding: 4,
           },
         },
@@ -2256,9 +2299,27 @@ document.addEventListener('mousemove',e=>{if(tipEl.classList.contains('visible')
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 
-function openSettings(){const cfg=loadConfig();['cfg-meta-token','cfg-meta-account','cfg-scalev-key','cfg-scalev-url','cfg-hpp','cfg-packaging','cfg-roas-threshold'].forEach(id=>{const keys={['cfg-meta-token']:'metaToken',['cfg-meta-account']:'metaAccountId',['cfg-scalev-key']:'scalevKey',['cfg-scalev-url']:'scalevBaseUrl',['cfg-hpp']:'hppPerUnit',['cfg-packaging']:'packagingPerOrder',['cfg-roas-threshold']:'roasThreshold'};const e=document.getElementById(id);if(e)e.value=cfg[keys[id]];});document.getElementById('settings-overlay').classList.add('open');}
+function openSettings(){
+  const cfg=loadConfig();
+  const map={['cfg-meta-token']:'metaToken',['cfg-meta-account']:'metaAccountId',['cfg-scalev-key']:'scalevKey',['cfg-scalev-url']:'scalevBaseUrl',['cfg-hpp']:'hppPerUnit',['cfg-packaging']:'packagingPerOrder',['cfg-roas-threshold']:'roasThreshold',['cfg-ad-start-date']:'adStartDate'};
+  Object.keys(map).forEach(id=>{const e=document.getElementById(id);if(e)e.value=cfg[map[id]]||'';});
+  document.getElementById('settings-overlay').classList.add('open');
+}
 function closeSettings(){document.getElementById('settings-overlay').classList.remove('open');}
-function saveSettings(){saveConfig({metaToken:document.getElementById('cfg-meta-token').value.trim(),metaAccountId:document.getElementById('cfg-meta-account').value.trim(),scalevKey:document.getElementById('cfg-scalev-key').value.trim(),scalevBaseUrl:document.getElementById('cfg-scalev-url').value.trim(),hppPerUnit:parseFloat(document.getElementById('cfg-hpp').value)||DEFAULT_CONFIG.hppPerUnit,packagingPerOrder:parseFloat(document.getElementById('cfg-packaging').value)||DEFAULT_CONFIG.packagingPerOrder,roasThreshold:parseFloat(document.getElementById('cfg-roas-threshold').value)||DEFAULT_CONFIG.roasThreshold});closeSettings();refreshData();}
+function saveSettings(){
+  const adStart=document.getElementById('cfg-ad-start-date').value.trim();
+  saveConfig({
+    metaToken:document.getElementById('cfg-meta-token').value.trim(),
+    metaAccountId:document.getElementById('cfg-meta-account').value.trim(),
+    scalevKey:document.getElementById('cfg-scalev-key').value.trim(),
+    scalevBaseUrl:document.getElementById('cfg-scalev-url').value.trim(),
+    hppPerUnit:parseFloat(document.getElementById('cfg-hpp').value)||DEFAULT_CONFIG.hppPerUnit,
+    packagingPerOrder:parseFloat(document.getElementById('cfg-packaging').value)||DEFAULT_CONFIG.packagingPerOrder,
+    roasThreshold:parseFloat(document.getElementById('cfg-roas-threshold').value)||DEFAULT_CONFIG.roasThreshold,
+    adStartDate: /^\d{4}-\d{2}-\d{2}$/.test(adStart) ? adStart : '',
+  });
+  closeSettings();refreshData();
+}
 document.getElementById('settings-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSettings();});
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
