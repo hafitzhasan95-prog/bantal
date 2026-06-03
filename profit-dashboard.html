@@ -1149,38 +1149,14 @@
       </div>
     </div>
 
-    <!-- Chart / Summary body -->
-    <div class="ios-card-body" style="padding-top:12px">
-
-      <!-- Single-day summary (Hari Ini / Kemarin) -->
-      <div id="monitor-single-day" style="display:none">
-        <div class="monitor-summary-grid">
-          <div class="mon-sum-item">
-            <div class="mon-sum-label">Net Revenue</div>
-            <div class="mon-sum-val" style="color:var(--blue)" id="mon-revenue">—</div>
-          </div>
-          <div class="mon-sum-item">
-            <div class="mon-sum-label">Net Profit</div>
-            <div class="mon-sum-val" id="mon-profit">—</div>
-          </div>
-          <div class="mon-sum-item">
-            <div class="mon-sum-label">Ad Spend</div>
-            <div class="mon-sum-val" id="mon-spend">—</div>
-          </div>
-          <div class="mon-sum-item">
-            <div class="mon-sum-label">ROAS</div>
-            <div class="mon-sum-val" style="color:var(--orange)" id="mon-roas">—</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Multi-day trend chart -->
-      <div id="monitor-trend" style="display:none">
+    <!-- Chart body — always visible -->
+    <div class="ios-card-body" style="padding-top:8px;padding-bottom:14px">
+      <!-- Trend chart (always shown, single bar for Hari Ini/Kemarin) -->
+      <div id="monitor-trend">
         <div class="chart-wrap" style="height:200px"><canvas id="chart-daily-profit"></canvas></div>
       </div>
-
       <!-- Loading state -->
-      <div id="monitor-loading" class="state-box" style="padding:14px">
+      <div id="monitor-loading" class="state-box" style="padding:14px;display:none">
         <span class="spinner"></span>
       </div>
     </div>
@@ -1738,53 +1714,37 @@ function trunc(s,n){return s.length>n?s.slice(0,n)+'…':s;}
 // ─── MONITOR WAKTU SECTION ────────────────────────────────────────────────────
 
 function renderMonitorSection() {
-  const loading  = document.getElementById('monitor-loading');
-  const singleEl = document.getElementById('monitor-single-day');
-  const trendEl  = document.getElementById('monitor-trend');
-  const dr       = getDateRange();
-  const data     = state.dailyData;
+  const loading = document.getElementById('monitor-loading');
+  const trendEl = document.getElementById('monitor-trend');
+  const dr      = getDateRange();
+  const data    = state.dailyData;
 
-  if (loading)  loading.style.display  = 'none';
+  if (loading) loading.style.display = 'none';
+  if (trendEl) trendEl.style.display = '';
 
-  /* ── Single-day: Hari Ini / Kemarin ── */
-  if (!dr.multi) {
-    if (singleEl) singleEl.style.display = '';
-    if (trendEl)  trendEl.style.display  = 'none';
-    dChart('dailyprofit');
-    if (state.metrics) {
-      const m = state.metrics;
-      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-      set('mon-revenue', rupiahShort(m.net_revenue));
-      const pe = document.getElementById('mon-profit');
-      if (pe) { pe.textContent = rupiahShort(m.net_profit); pe.style.color = m.net_profit >= 0 ? 'var(--green)' : 'var(--red)'; }
-      set('mon-spend', rupiahShort(m.ad_spend));
-      set('mon-roas', formatRoas(m.roas));
-    }
-    return;
-  }
-
-  /* ── Multi-day: trend chart ── */
-  if (singleEl) singleEl.style.display = 'none';
-  if (trendEl)  trendEl.style.display  = '';
-
-  if (!data.length) {
-    dChart('dailyprofit');
-    if (trendEl) trendEl.innerHTML = '<div class="state-box"><span>Tidak ada data</span></div>';
-    return;
-  }
-
-  /* make sure chart-wrap canvas is still inside if we re-render */
+  /* make sure canvas exists */
   if (trendEl && !document.getElementById('chart-daily-profit')) {
-    trendEl.innerHTML = '<div class="chart-wrap" style="height:180px"><canvas id="chart-daily-profit"></canvas></div>';
+    trendEl.innerHTML = '<div class="chart-wrap" style="height:200px"><canvas id="chart-daily-profit"></canvas></div>';
   }
+
+  /* ── Build chart data ── */
+  /* Single-day: one bar from metrics */
+  let labels, profitData, spendData;
 
   const mob = window.innerWidth <= 699;
   const today = todayWib();
 
-  /* For yearly: group by month */
-  let labels, profitData, spendData, isYearly = false;
-  if (state.dateRange === 'thisyear' || (state.dateRange === 'custom' && state.customSince && (new Date(state.customUntil||state.customSince) - new Date(state.customSince)) > 60*24*3600*1000)) {
-    isYearly = true;
+  if (!dr.multi) {
+    /* ── Single-day: one bar from metrics ── */
+    const m = state.metrics;
+    const day = dr.since;
+    labels     = [String(parseInt(day.slice(8), 10))];
+    profitData = [m ? m.net_profit  : 0];
+    spendData  = [m ? m.ad_spend    : 0];
+  } else if (state.dateRange === 'thisyear' ||
+    (state.dateRange === 'custom' && state.customSince &&
+     (new Date(state.customUntil||state.customSince) - new Date(state.customSince)) > 60*24*3600*1000)) {
+    /* ── Yearly: group by month ── */
     const byMonth = {};
     data.forEach(d => {
       const ym = d.date.slice(0,7);
@@ -1796,23 +1756,24 @@ function renderMonitorSection() {
     profitData = months.map(ym => byMonth[ym].net);
     spendData  = months.map(ym => byMonth[ym].spend);
   } else {
-    // Just show day number as label (e.g. "5", "6", ..., "3")
+    /* ── Multi-day: day number labels ── */
+    if (!data.length) { dChart('dailyprofit'); return; }
     labels     = data.map(d => String(parseInt(d.date.slice(8),10)));
     profitData = data.map(d => d.net);
     spendData  = data.map(d => d.spend);
   }
 
-  const lastIdx = data.length - 1;
+  const lastIdx = profitData.length - 1;
+  const isSingle = !dr.multi;
 
-  // Bar colors: last bar = solid blue, positive = light blue, negative = light red
+  // Bar colors: last/single bar = solid blue, positive = light blue, negative = light red
   const barColors = profitData.map((v, i) => {
     if (i === lastIdx) return 'rgba(0,122,255,0.88)';
     return v >= 0 ? 'rgba(100,185,255,0.45)' : 'rgba(255,80,70,0.40)';
   });
-  const barBorders = profitData.map((v, i) => {
-    if (i === lastIdx) return 'rgba(0,100,220,0.9)';
-    return 'transparent';
-  });
+  const barBorders = profitData.map((v, i) =>
+    i === lastIdx ? 'rgba(0,100,220,0.9)' : 'transparent'
+  );
 
   dChart('dailyprofit');
   const canvas = document.getElementById('chart-daily-profit');
@@ -1832,6 +1793,7 @@ function renderMonitorSection() {
           borderWidth: 1,
           borderRadius: 3,
           borderSkipped: false,
+          maxBarThickness: isSingle ? 72 : 36,
           yAxisID: 'y',
           order: 2,
         },
@@ -1944,10 +1906,8 @@ async function refreshData(){
   state.loading=true; state._pendingRefresh=false; setLoading(true);
   // show monitor spinner while loading
   const mld=document.getElementById('monitor-loading');
-  const msd=document.getElementById('monitor-single-day');
   const mtd=document.getElementById('monitor-trend');
   if(mld){mld.style.display='';}
-  if(msd){msd.style.display='none';}
   if(mtd){mtd.style.display='none';}
   const cfg=loadConfig();
   const dr=getDateRange();
