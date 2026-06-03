@@ -661,11 +661,13 @@
   .drp-panel {
     background: var(--bg2);
     width: 100%; max-width: 820px;
-    max-height: 94vh; overflow: hidden;
+    max-height: 94dvh; overflow: hidden;
     display: flex; flex-direction: column;
     border-radius: 24px 24px 0 0;
     animation: sheet-up .28s var(--ease-out);
     box-shadow: 0 -8px 48px rgba(0,0,0,0.22);
+    /* Ensure panel itself doesn't intercept touch events on children */
+    touch-action: pan-y;
   }
   .drp-handle {
     width: 36px; height: 4px; background: var(--label4);
@@ -724,8 +726,9 @@
 
   /* Calendar area */
   .drp-cals {
-    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    flex: 1; overflow: visible;
     padding: 12px 14px 6px; display: flex; gap: 0;
+    touch-action: manipulation;
   }
 
   .drp-cal { flex: 1; min-width: 0; }
@@ -757,6 +760,7 @@
   .cal-cell {
     position: relative; text-align: center;
     padding: 2px 0; user-select: none; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
   .cal-cell.dim { cursor: default; pointer-events: none; }
   /* background strip for in-range */
@@ -2236,6 +2240,47 @@ function pickerDayHover(ds){
 }
 function pickerHoverLeave(){ if(pkr.phase===1){ pkr.hover=null; renderDrpCals(); renderDrpFooter(); } }
 
+// ── Event delegation for calendar cells ──────────────────────────────────────
+// Replaces inline onclick/onmouseover — more reliable on iOS Safari touch devices.
+// Must run after DOM is parsed (picker HTML lives AFTER this <script> block).
+document.addEventListener('DOMContentLoaded', function setupCalEvents(){
+  const wrap = document.getElementById('drp-cals-wrap');
+  if(!wrap) return;
+
+  // Find nearest cal-cell with a data-date attribute
+  function cellDateFromEvent(e){
+    const el = e.target.closest ? e.target.closest('[data-date]') : null;
+    if(!el || el.classList.contains('dim')) return null;
+    return el.dataset.date || null;
+  }
+
+  // Click — desktop + Android fallback
+  wrap.addEventListener('click', e => {
+    const ds = cellDateFromEvent(e);
+    if(ds) pickerDayClick(ds);
+  });
+
+  // Touchstart/touchend — primary tap handler on iOS Safari
+  let _touchStartDs = null;
+  wrap.addEventListener('touchstart', e => {
+    _touchStartDs = cellDateFromEvent(e);
+  }, {passive: true});
+  wrap.addEventListener('touchend', e => {
+    const ds = _touchStartDs;
+    _touchStartDs = null;
+    if(!ds) return;
+    e.preventDefault(); // prevent ghost click
+    pickerDayClick(ds);
+  }, {passive: false});
+
+  // Hover preview (mouse only)
+  wrap.addEventListener('mouseover', e => {
+    const ds = cellDateFromEvent(e);
+    if(ds) pickerDayHover(ds);
+  });
+  wrap.addEventListener('mouseleave', () => pickerHoverLeave());
+});
+
 function renderDrpCals(){
   const l=document.getElementById('drp-cal-l'), r=document.getElementById('drp-cal-r');
   if(l) l.innerHTML=buildCalHtml(pkr.lY, pkr.lM, 'l');
@@ -2286,8 +2331,7 @@ function buildCalHtml(year, month, side){
     }
     if(isToday&&!isStart&&!isEnd&&!isSingle) cls.push('today-c');
 
-    h+=`<div class="${cls.join(' ')}" onclick="pickerDayClick('${ds}')" onmouseover="pickerDayHover('${ds}')">
-      <div class="cal-inner">${d}</div></div>`;
+    h+=`<div class="${cls.join(' ')}" data-date="${ds}"><div class="cal-inner">${d}</div></div>`;
   }
 
   // trailing dim
@@ -2425,7 +2469,7 @@ if(sessionStorage.getItem('pmAuth')==='ok') init();
       <!-- Desktop: sidebar presets -->
       <div class="drp-sidebar" id="drp-sidebar"></div>
       <!-- Calendars -->
-      <div class="drp-cals" onmouseleave="pickerHoverLeave()">
+      <div class="drp-cals" id="drp-cals-wrap">
         <div class="drp-cal" id="drp-cal-l"></div>
         <div class="drp-cal" id="drp-cal-r"></div>
       </div>
