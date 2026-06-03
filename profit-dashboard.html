@@ -2,7 +2,10 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F2F7">
 <title>Profit Monitor — Login</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
@@ -576,14 +579,124 @@
     margin-left: 6px;
   }
 
-  /* ─── RESPONSIVE ─── */
+  /* ─── MOBILE RESPONSIVE ─── */
+
+  /* fast tap — no 300ms delay */
+  button, a, input { touch-action: manipulation; }
+
+  /* safe area support (notch / home indicator) */
+  .navbar {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+  .tab-bar {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .main {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .settings-panel {
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
+  }
+
+  /* table horizontal scroll + smooth momentum */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap::-webkit-scrollbar { height: 0; }
+
+  /* order feed scroll momentum */
+  .order-feed { -webkit-overflow-scrolling: touch; }
+
   @media (max-width: 699px) {
     .hide-mobile { display: none !important; }
-    .navbar { padding: 0 16px; }
-    .main { padding: 12px 14px 60px; }
-    .metric-grid { gap: 10px; }
-    .mc-value { font-size: 1.2rem; }
+
+    /* navbar compact */
+    .navbar { padding: 0 16px; gap: 8px; height: 50px; }
+    .navbar-title { font-size: 0.88rem; }
+    .navbar-live { display: none; }
+    #refresh-btn { padding: 6px 12px; font-size: 0.75rem; }
+
+    /* tab bar */
+    .tab-bar { padding: 8px 16px 0; }
+    .tab-btn { padding: 5px 12px; font-size: 0.72rem; }
+
+    /* main */
+    .main { padding: 12px 14px calc(80px + env(safe-area-inset-bottom)); }
+
+    /* page title */
+    .page-big-title { font-size: 1.35rem; }
+    .page-header { margin-bottom: 14px; }
+
+    /* metric cards */
+    .metric-grid { gap: 8px; margin-bottom: 8px; }
+    .metric-card { padding: 14px 14px 12px; }
+    .mc-value { font-size: 1.15rem; }
+    .mc-icon { font-size: 0.95rem; margin-bottom: 8px; }
+    .mc-sub { display: none; }
+
+    /* secondary row */
+    .secondary-row { gap: 8px; margin-bottom: 14px; }
+    .sec-card { padding: 11px 12px; }
+    .sec-value { font-size: 0.95rem; }
+
+    /* ios-card header stacks on very small */
+    .ios-card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .ios-card-body { padding: 0 14px 14px; }
+
+    /* breakdown legend wraps tighter */
+    .bd-legend { gap: 8px; }
+    .bd-item { font-size: 0.68rem; }
+
+    /* table font */
+    table { font-size: 0.75rem; }
+    th, td { padding: 9px 10px; }
+
+    /* settings sheet full width */
+    .settings-panel { border-radius: 20px 20px 0 0; }
+    .settings-inner { padding: 16px 16px 32px; }
+
+    /* body layout: single column */
+    .body-layout { grid-template-columns: 1fr; }
+
+    /* charts: limit height on mobile */
+    #chart-cpp, #chart-spent-purchase { max-height: 200px; }
+    #chart-qty-donut { max-height: 180px; }
+
+    /* hide tooltip on touch */
+    .tip { display: none; }
   }
+
+  @media (max-width: 374px) {
+    .mc-value { font-size: 1rem; }
+    .metric-card { padding: 12px 12px 10px; }
+    .page-big-title { font-size: 1.2rem; }
+  }
+
+  /* ─── FLOATING REFRESH (mobile) ─── */
+  .fab {
+    display: none;
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    right: 20px;
+    width: 52px; height: 52px;
+    background: var(--blue);
+    border-radius: 50%;
+    border: none; cursor: pointer;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 20px rgba(0,122,255,0.4);
+    transition: all .2s var(--spring);
+    z-index: 150;
+    align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .fab:active { transform: scale(0.9); }
+  .fab.spinning { animation: spin .7s linear infinite; }
+  @media (max-width: 699px) { .fab { display: flex; } }
 
   /* ─── SCROLLBAR ─── */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -1237,7 +1350,7 @@ function mockOrders(){const s=['pending','confirmed','pending','confirmed','conf
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────
 
-function setLoading(on){const b=document.getElementById('refresh-btn'),i=document.getElementById('refresh-icon');b.disabled=on;i.innerHTML=on?'<span class="spinner"></span>':'↺';}
+function setLoading(on){const b=document.getElementById('refresh-btn'),i=document.getElementById('refresh-icon'),f=document.getElementById('fab-refresh');b.disabled=on;i.innerHTML=on?'<span class="spinner"></span>':'↺';if(f){f.disabled=on;f.classList.toggle('spinning',on);}}
 
 function updateTime(){const el=document.getElementById('last-updated'),now=new Date();el.textContent=`Updated ${now.toLocaleTimeString('id-ID')}`;clearInterval(window._agi);window._agi=setInterval(()=>{const d=Math.round((Date.now()-now)/60000);el.textContent=d<1?'Baru saja':`${d} mnt lalu`;},30000);}
 
@@ -1288,5 +1401,6 @@ function doLogin(){
 function init(){requestNotif();startAutoRefresh();refreshData();}
 if(sessionStorage.getItem('pmAuth')==='ok') init();
 </script>
+<button class="fab" id="fab-refresh" onclick="refreshData()" title="Refresh">↺</button>
 </body>
 </html>
