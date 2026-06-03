@@ -2053,10 +2053,15 @@ async function refreshData(){
     if(!chartOrders||!chartOrders.length) chartOrders=mockOrders({since:cr.since,until:cr.until,multi:true});
     const chartMeta=chartMd.status==='fulfilled'?chartMd.value:{};
     state.chartData=buildDailyData(chartOrders,chartMeta,cfg,cr.since,cr.until);
+    patchTodaySpend(state.chartData);
+
+    // Overlay in-range dates with state.dailyData so chart bars for the
+    // selected period always match the metric cards below exactly
+    const dailyByDate=Object.fromEntries(state.dailyData.map(d=>[d.date,d]));
+    state.chartData=state.chartData.map(d=>dailyByDate[d.date]||d);
   } else {
     state.chartData=state.dailyData;
   }
-  patchTodaySpend(state.chartData);
 
   state.metrics=calculateMetrics(state.orders,state.campaigns,cfg);
   renderCards(state.metrics,cfg);
