@@ -1376,6 +1376,11 @@
 </main>
 
 <script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+
+// Tanggal iklan one set pertama kali jalan — chart tidak boleh tampilkan data sebelum ini
+const MIN_CHART_DATE = '2026-05-27';
+
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG = {
@@ -1468,19 +1473,25 @@ function getChartRange(dr) {
   const cfg = loadConfig();
   const adStart = cfg.adStartDate;
 
-  // If adStartDate is configured and falls before (or at) the selected range end,
-  // always show from that date — this covers the full campaign history
+  // Candidate start: adStartDate from config, or 30-day window, whichever is later
+  let since;
   if (adStart && /^\d{4}-\d{2}-\d{2}$/.test(adStart) && adStart <= dr.until) {
-    const chartSince = adStart < dr.since ? adStart : dr.since;
-    return { since: chartSince, until: dr.until, extended: chartSince < dr.since };
+    since = adStart < dr.since ? adStart : dr.since;
+  } else {
+    const n = getDaysInRange(dr.since, dr.until).length;
+    if (n >= 30) {
+      since = dr.since;
+    } else {
+      const end = new Date(dr.until + 'T12:00:00Z');
+      const s = new Date(end); s.setUTCDate(s.getUTCDate() - 29);
+      since = s.toISOString().slice(0, 10);
+    }
   }
 
-  // Default: extend backward to at least 30 days
-  const n = getDaysInRange(dr.since, dr.until).length;
-  if (n >= 30) return { since:dr.since, until:dr.until, extended:false };
-  const end = new Date(dr.until + 'T12:00:00Z');
-  const start = new Date(end); start.setUTCDate(start.getUTCDate() - 29);
-  return { since:start.toISOString().slice(0,10), until:dr.until, extended:true };
+  // Hard floor: never fetch or display data before MIN_CHART_DATE
+  if (since < MIN_CHART_DATE) since = MIN_CHART_DATE;
+
+  return { since, until: dr.until, extended: since < dr.since };
 }
 
 // ─── META ADS ─────────────────────────────────────────────────────────────────
@@ -1779,8 +1790,9 @@ function renderMonitorSection() {
   const trendEl = document.getElementById('monitor-trend');
   const dr      = getDateRange();
   const cr      = getChartRange(dr);
-  // Use chartData (always >= 30 days) for chart rendering
-  const data    = (state.chartData && state.chartData.length) ? state.chartData : state.dailyData;
+  // Use chartData; strip any entries before the hard floor date
+  const rawData = (state.chartData && state.chartData.length) ? state.chartData : state.dailyData;
+  const data    = rawData.filter(d => d.date >= MIN_CHART_DATE);
 
   if (loading) loading.style.display = 'none';
   if (trendEl) trendEl.style.display = '';
