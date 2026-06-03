@@ -1546,13 +1546,14 @@ async function fetchMetaDailyData(cfg, since, until) {
   } catch{return {};}
 }
 
-// Fetch today's ad spend as a single aggregate (no time_increment) — avoids Meta's daily lag
-// where time_increment=1 returns 0 for the current in-progress day
-async function fetchTodayAggSpend(cfg) {
+// Fetch ad spend for a single date as account-level aggregate (no time_increment).
+// time_increment=1 can return 0 for the current day (still processing) and sometimes
+// for yesterday too. The aggregate call is always accurate.
+async function fetchAggSpend(cfg, date) {
   if(!cfg.metaToken||!cfg.metaAccountId) return 0;
-  const today=todayWib(), id=cfg.metaAccountId.replace(/^act_/,'');
+  const id=cfg.metaAccountId.replace(/^act_/,'');
   try {
-    const r=await fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'spend',time_range:JSON.stringify({since:today,until:today}),level:'account',access_token:cfg.metaToken})}`);
+    const r=await fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'spend',time_range:JSON.stringify({since:date,until:date}),level:'account',access_token:cfg.metaToken})}`);
     const d=await r.json(); if(d.error||!d.data?.length) return 0;
     return parseFloat(d.data[0].spend||0);
   } catch{return 0;}
@@ -2013,16 +2014,19 @@ async function refreshData(){
 
   // Parallel: meta insights, scalev (selected), meta daily (selected),
   //           + if extended: scalev (chart range), meta daily (chart range)
-  //           + today's aggregate spend (fixes Meta time_increment=1 returning 0 for current day)
+  //           + aggregate spend for cr.until (today OR yesterday) — fixes Meta
+  //             time_increment=1 returning 0 for current/recent day
   const today=todayWib();
-  const chartEndsToday=cr.until===today;
-  const [mr,sr,md,chartSr,chartMd,todaySpendR]=await Promise.allSettled([
+  const yesterday=offsetWib(-1);
+  // Fetch aggregate for the last day of the chart range if it could be unreliable
+  const crUntilNeedsAgg = cr.until===today || cr.until===yesterday;
+  const [mr,sr,md,chartSr,chartMd,crUntilAggR]=await Promise.allSettled([
     fetchMetaAds(cfg),
     fetchScalev(cfg),
     fetchMetaDailyData(cfg, dr.since, dr.until),
     needChart ? fetchScalevRange(cfg, cr.since, cr.until) : Promise.resolve(null),
     needChart ? fetchMetaDailyData(cfg, cr.since, cr.until) : Promise.resolve(null),
-    chartEndsToday ? fetchTodayAggSpend(cfg) : Promise.resolve(0),
+    crUntilNeedsAgg ? fetchAggSpend(cfg, cr.until) : Promise.resolve(0),
   ]);
 
   // Metric data (selected range)
@@ -2031,21 +2035,21 @@ async function refreshData(){
   if(sr.status==='fulfilled'){state.orders=sr.value;state.scalevError=null;}
   else{state.scalevError=sr.reason?.message||'Unknown';if(!state.orders.length)state.orders=mockOrders(dr);}
 
-  // today's accurate spend (account-level aggregate, always fresh)
-  const todayAggSpend=todaySpendR.status==='fulfilled'?todaySpendR.value:0;
+  // Accurate aggregate spend for cr.until (avoids time_increment=1 lag for recent days)
+  const crUntilAggSpend=crUntilAggR.status==='fulfilled'?crUntilAggR.value:0;
 
-  // Helper: patch today's entry in a dailyData array with the accurate spend
-  function patchTodaySpend(arr) {
-    if(!chartEndsToday||todayAggSpend<=0) return;
-    const i=arr.findIndex(d=>d.date===today);
+  // Patch a dailyData array: if cr.until's entry has spend=0, use aggregate value
+  function patchRecentSpend(arr) {
+    if(!crUntilNeedsAgg||crUntilAggSpend<=0) return;
+    const i=arr.findIndex(d=>d.date===cr.until);
     if(i>=0 && arr[i].spend===0) {
-      arr[i]={...arr[i], spend:todayAggSpend, net:arr[i].gross-todayAggSpend};
+      arr[i]={...arr[i], spend:crUntilAggSpend, net:arr[i].gross-crUntilAggSpend};
     }
   }
 
   const metaDaily=md.status==='fulfilled'?md.value:{};
   state.dailyData=buildDailyData(state.orders,metaDaily,cfg,dr.since,dr.until);
-  patchTodaySpend(state.dailyData);
+  patchRecentSpend(state.dailyData);
 
   // Chart data (extended 30-day window or same as metric)
   if(needChart){
@@ -2053,7 +2057,7 @@ async function refreshData(){
     if(!chartOrders||!chartOrders.length) chartOrders=mockOrders({since:cr.since,until:cr.until,multi:true});
     const chartMeta=chartMd.status==='fulfilled'?chartMd.value:{};
     state.chartData=buildDailyData(chartOrders,chartMeta,cfg,cr.since,cr.until);
-    patchTodaySpend(state.chartData);
+    patchRecentSpend(state.chartData);
 
     // Overlay in-range dates with state.dailyData so chart bars for the
     // selected period always match the metric cards below exactly
