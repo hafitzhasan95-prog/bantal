@@ -15,7 +15,7 @@
   /* ─── LOGIN ─── */
   #login-gate {
     position: fixed; inset: 0; z-index: 9999;
-    background: #F2F2F7;
+    background: #FFFFFF;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   }
@@ -39,7 +39,7 @@
   .login-sub { font-size: 0.82rem; color: #8E8E93; margin-bottom: 32px; font-weight: 400; }
   .login-card input[type="password"] {
     width: 100%; padding: 14px 18px;
-    background: #F2F2F7; border: none; border-radius: 14px;
+    background: #FFFFFF; border: none; border-radius: 14px;
     color: #1C1C1E; font-size: 1rem; font-family: inherit;
     outline: none; margin-bottom: 12px; transition: all .2s;
     text-align: center; letter-spacing: 0.2em;
@@ -83,7 +83,7 @@
     --yellow: #FFCC00;
 
     /* iOS System Grays */
-    --bg:         #F2F2F7;
+    --bg:         #FFFFFF;
     --bg2:        #FFFFFF;
     --surface:    #FFFFFF;
     --grouped:    #F2F2F7;
@@ -320,9 +320,10 @@
 
   /* ─── IOS CARD ─── */
   .ios-card {
-    background: transparent;
+    background: #FFFFFF;
     border-radius: var(--radius-xl);
     box-shadow: none;
+    border: 1px solid rgba(0,0,0,0.08);
     overflow: hidden;
   }
   .ios-card + .ios-card { margin-top: 12px; }
