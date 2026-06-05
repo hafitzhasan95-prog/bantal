@@ -1440,8 +1440,8 @@ function saveConfig(patch) {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 // ─── ORDER STATUS HELPERS ─────────────────────────────────────────────────────
-// Untuk METRICS (kartu): hanya ready + confirmed (order yang sedang diproses)
-const isActiveOrder    = o => { const s=(o.order_status||'').toLowerCase(); return s==='ready'||s==='confirmed'; };
+// Untuk METRICS (kartu): ready, confirmed, delivered, completed
+const isActiveOrder    = o => { const s=(o.order_status||'').toLowerCase(); return s==='ready'||s==='confirmed'||s==='delivered'||s==='completed'; };
 const isPendingOrder   = o => (o.order_status||'').toLowerCase()==='pending';
 const isCancelledOrder = o => { const s=(o.order_status||'').toLowerCase(); return s.includes('cancel'); };
 // Untuk CHART HISTORY: semua order kecuali pending & cancel
