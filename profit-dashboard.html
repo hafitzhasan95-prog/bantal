@@ -1656,10 +1656,9 @@ function buildDailyData(orders, metaDailySpend, cfg, since, until) {
     const hpp=units*cfg.hppPerUnit, pkg=cnt*cfg.packagingPerOrder;
     const sf=dayOrders.reduce((s,o)=>s+o.scalev_fee+o.payment_fee,0);
     const spend=metaDailySpend[date]||0;
-    const rr=cfg.returnRate||0.20;
-    const ret=hpp*rr;
-    const gross=revenue-hpp-pkg-sf-ret, net=gross-spend;
-    return {date,revenue,spend,gross,net,orders:cnt,units,ret};
+    // Chart menampilkan profit aktual (tanpa estimasi return — itu ada di kartu metrics saja)
+    const gross=revenue-hpp-pkg-sf, net=gross-spend;
+    return {date,revenue,spend,gross,net,orders:cnt,units};
   });
 }
 
