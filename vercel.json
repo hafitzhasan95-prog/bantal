@@ -4,8 +4,10 @@
     { "source": "/jarvis", "destination": "/jarvis.html" },
     { "source": "/dastercantik", "destination": "/dastercantik.html" },
     { "source": "/OneSetCantik", "destination": "/OneSetCantik.html" },
+    { "source": "/OneSetAngelica", "destination": "/OneSetAngelica.html" },
     { "source": "/eljida-preview", "destination": "/eljida-preview.html" },
     { "source": "/monitorprofit", "destination": "/profit-dashboard.html" },
-    { "source": "/flyoraai", "destination": "/flyoraai.html" }
+    { "source": "/flyoraai", "destination": "/flyoraai.html" },
+    { "source": "/ProfitMonitor2", "destination": "/ProfitMonitor2.html" }
   ]
 }
