@@ -1590,15 +1590,30 @@ async function fetchScalev(cfg) {
   }));
 }
 
-// Daily Meta spend: returns { 'YYYY-MM-DD': spend } for a given date range
+// Daily Meta spend: returns { 'YYYY-MM-DD': totalSpend } for a given date range.
+// Uses level:'campaign' — level:'account' with time_increment=1 returns empty on Meta API.
+// Sums spend across all campaigns per day, handles pagination.
 async function fetchMetaDailyData(cfg, since, until) {
   if(!cfg.metaToken||!cfg.metaAccountId) return {};
   const id=cfg.metaAccountId.replace(/^act_/,'');
+  const result={};
   try {
-    const r=await fetch(`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({fields:'spend',time_range:JSON.stringify({since,until}),time_increment:1,level:'account',access_token:cfg.metaToken})}`);
-    const d=await r.json(); if(d.error) return {};
-    const result={}; (d.data||[]).forEach(day=>{result[day.date_start]=parseFloat(day.spend||0);}); return result;
-  } catch{return {};}
+    let url=`https://graph.facebook.com/v19.0/act_${id}/insights?${new URLSearchParams({
+      fields:'spend', time_range:JSON.stringify({since,until}),
+      time_increment:1, level:'campaign', limit:200, access_token:cfg.metaToken
+    })}`;
+    let pg=0;
+    while(url && pg<10){
+      const r=await fetch(url); const d=await r.json();
+      if(d.error) break;
+      (d.data||[]).forEach(row=>{
+        const dt=row.date_start;
+        result[dt]=(result[dt]||0)+parseFloat(row.spend||0);
+      });
+      url=d.paging?.next||null; pg++;
+    }
+  } catch{/* silent */}
+  return result;
 }
 
 // Fetch ad spend for a single date as account-level aggregate (no time_increment).
