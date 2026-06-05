@@ -1440,9 +1440,13 @@ function saveConfig(patch) {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 // ─── ORDER STATUS HELPERS ─────────────────────────────────────────────────────
+// Untuk METRICS (kartu): hanya ready + confirmed (order yang sedang diproses)
 const isActiveOrder    = o => { const s=(o.order_status||'').toLowerCase(); return s==='ready'||s==='confirmed'; };
 const isPendingOrder   = o => (o.order_status||'').toLowerCase()==='pending';
 const isCancelledOrder = o => { const s=(o.order_status||'').toLowerCase(); return s.includes('cancel'); };
+// Untuk CHART HISTORY: semua order kecuali pending & cancel
+// (order lama bisa berstatus delivered/completed, tetap harus dihitung)
+const isChartOrder     = o => { const s=(o.order_status||'').toLowerCase(); return s!=='pending' && !s.includes('cancel'); };
 
 const state = {
   campaigns:[], orders:[], metrics:null, dailyData:[], chartData:[],
@@ -2183,7 +2187,7 @@ async function refreshData(){
     if(!chartOrders||!chartOrders.length) chartOrders=mockOrders({since:cr.since,until:cr.until,multi:true});
     const chartMeta=chartMd.status==='fulfilled'?chartMd.value:{};
     state.chartData=buildDailyData(
-      chartOrders.filter(isActiveOrder),chartMeta,cfg,cr.since,cr.until);
+      chartOrders.filter(isChartOrder),chartMeta,cfg,cr.since,cr.until);
     patchRecentSpend(state.chartData);
 
     const dailyByDate=Object.fromEntries(state.dailyData.map(d=>[d.date,d]));
