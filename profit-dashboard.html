@@ -1437,6 +1437,70 @@ function saveConfig(patch) {
   return next;
 }
 
+// ─── DAILY SNAPSHOTS ──────────────────────────────────────────────────────────
+// Menyimpan data aktual per hari ke localStorage agar data historis tidak berubah
+// saat re-fetch dari API (status order berubah, token beda, dll)
+
+const SNAP_KEY = 'profitDailySnapshots';
+
+function loadSnapshots() {
+  try { return JSON.parse(localStorage.getItem(SNAP_KEY)||'{}'); }
+  catch { return {}; }
+}
+
+function getSnapshot(date) {
+  return loadSnapshots()[date] || null;
+}
+
+function buildTodaySnapshot() {
+  const today = todayWib();
+  if(!state.metrics) return null;
+  const cfg = loadConfig();
+  // Cari data hari ini dari dailyData (hasil buildDailyData)
+  const dd = state.dailyData.find(d => d.date === today);
+  return {
+    date: today,
+    orders: state.metrics.total_orders,
+    units: state.metrics.total_units,
+    revenue: state.metrics.net_revenue,
+    adSpend: state.metrics.ad_spend,
+    net: dd ? dd.net : (state.metrics.gross_profit - state.metrics.ad_spend),
+    gross: dd ? dd.gross : state.metrics.gross_profit,
+    hpp: state.metrics.hpp_total,
+    packaging: state.metrics.packaging_total,
+    fees: state.metrics.scalev_fee_total + state.metrics.payment_fee_total,
+    returnCost: state.metrics.return_cost || 0,
+    pendingCount: state.pendingOrders.length,
+    cancelCount: state.cancelledOrders.length,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function autoSaveSnapshot() {
+  const today = todayWib();
+  const snap = buildTodaySnapshot();
+  if(!snap) return;
+  const all = loadSnapshots();
+  // Selalu update snapshot hari ini (refresh terbaru = paling akurat)
+  // Snapshot hari lain tidak disentuh (immutable setelah hari berganti)
+  all[today] = snap;
+  try { localStorage.setItem(SNAP_KEY, JSON.stringify(all)); } catch{}
+}
+
+// Jadwalkan auto-save tepat jam 00:00 WIB (17:00 UTC)
+function scheduleMidnightSave() {
+  const now = new Date();
+  // Cari UTC 17:00 berikutnya (= 00:00 WIB)
+  const next = new Date(now);
+  next.setUTCHours(17, 0, 0, 0);
+  if(next <= now) next.setUTCDate(next.getUTCDate() + 1);
+  const delay = next - now;
+  setTimeout(() => {
+    autoSaveSnapshot();       // simpan data hari ini sebelum tanggal berganti
+    scheduleMidnightSave();   // jadwalkan untuk besok
+  }, delay);
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 
 // ─── ORDER STATUS HELPERS ─────────────────────────────────────────────────────
@@ -2210,6 +2274,18 @@ async function refreshData(){
     state.chartData=state.dailyData;
   }
 
+  // Terapkan snapshot untuk hari-hari lalu — lebih akurat dari re-fetch API
+  // (status order bisa berubah, snapshot simpan data pada hari itu terjadi)
+  const snaps=loadSnapshots();
+  const todayStr=todayWib();
+  state.chartData=state.chartData.map(d=>{
+    if(d.date===todayStr) return d; // hari ini selalu pakai data live
+    const s=snaps[d.date];
+    if(!s) return d;                // belum ada snapshot, pakai API
+    return {date:d.date, revenue:s.revenue, spend:s.adSpend,
+            gross:s.gross, net:s.net, orders:s.orders, units:s.units};
+  });
+
   state.metrics=calculateMetrics(activeOrders,state.campaigns,cfg);
   renderCards(state.metrics,cfg);
   renderStackedBar(state.metrics);
@@ -2220,6 +2296,10 @@ async function refreshData(){
   renderPendingCancelSection();
   checkRoasAlert(state.metrics.roas,cfg.roasThreshold);
   updateStatus(); updateTime();
+
+  // Simpan snapshot hari ini setelah setiap refresh (data terbaru = paling akurat)
+  autoSaveSnapshot();
+
   state.loading=false; setLoading(false);
   if(state._pendingRefresh) refreshData();
 }
@@ -2569,7 +2649,7 @@ function doLogin(){
   else{err.textContent='Password salah.';document.getElementById('login-pass').value='';document.getElementById('login-pass').focus();setTimeout(()=>err.textContent='',3000);}
 }
 
-function init(){requestNotif();startAutoRefresh();refreshData();}
+function init(){requestNotif();startAutoRefresh();refreshData();scheduleMidnightSave();}
 if(sessionStorage.getItem('pmAuth')==='ok') init();
 </script>
 <button class="fab" id="fab-refresh" onclick="refreshData()" title="Refresh">↺</button>
